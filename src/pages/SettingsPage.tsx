@@ -538,6 +538,19 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
 
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.775rem' }}>
+                      E-mail da sua Conta no Brevo (Remetente)
+                    </label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="seu.email@gmail.com"
+                      value={emailConfig.brevoSenderEmail || ''}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, brevoSenderEmail: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>
                       Chave de API Resend
                       <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" style={{ fontSize: '0.7rem', color: 'var(--primary)', marginLeft: '0.4rem', textDecoration: 'underline' }}>
                         Obter grátis ↗

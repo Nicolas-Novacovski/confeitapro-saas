@@ -77,6 +77,7 @@ export interface EmailDeliveryConfig {
   emailjsPublicKey?: string;
   // Brevo
   brevoApiKey?: string;
+  brevoSenderEmail?: string;
   // Resend
   resendApiKey?: string;
   // Webhook
@@ -97,6 +98,7 @@ export function getEmailConfig(): EmailDeliveryConfig {
     emailjsTemplateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
     emailjsPublicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '',
     brevoApiKey: import.meta.env.VITE_BREVO_API_KEY || '',
+    brevoSenderEmail: import.meta.env.VITE_BREVO_SENDER_EMAIL || 'nicolas.vendrami@gmail.com',
     resendApiKey: import.meta.env.VITE_RESEND_API_KEY || '',
     webhookUrl: import.meta.env.VITE_EMAIL_API_URL || ''
   };
@@ -116,15 +118,16 @@ export async function sendActivationEmail(params: SendActivationEmailParams): Pr
   try {
     // 1. Envio via Brevo (Sendinblue) API
     if (config.brevoApiKey) {
+      const senderEmail = config.brevoSenderEmail?.trim() || 'nicolas.vendrami@gmail.com';
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
           'accept': 'application/json',
-          'api-key': config.brevoApiKey,
+          'api-key': config.brevoApiKey.trim(),
           'content-type': 'application/json'
         },
         body: JSON.stringify({
-          sender: { name: 'DoceLucro Confeitaria', email: 'atendimento@docelucro.com' },
+          sender: { name: 'DoceLucro Confeitaria', email: senderEmail },
           to: [{ email: params.email, name: params.name }],
           subject: `🧁 Seu código de ativação do DoceLucro: ${params.activationCode}`,
           htmlContent: htmlContent
@@ -133,7 +136,7 @@ export async function sendActivationEmail(params: SendActivationEmailParams): Pr
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || 'Falha ao enviar via Brevo');
+        throw new Error(errJson.message || `Erro Brevo HTTP ${res.status}`);
       }
       return logSentEmail(params, 'Brevo API');
     }
