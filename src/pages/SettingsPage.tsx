@@ -15,15 +15,19 @@ import {
   Link2,
   Trash2,
   Mail,
-  Send
+  Send,
+  MessageCircle,
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 import { getEmailConfig, saveEmailConfig, sendActivationEmail } from '../utils/emailService';
 
 interface SettingsPageProps {
   onOpenPricing: () => void;
+  onOpenLegal?: (tab: 'terms' | 'privacy') => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing, onOpenLegal }) => {
   const { user, updateProfile, isPro, cancelSubscription, isAdmin } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
@@ -38,6 +42,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => 
   const [stripeLinks, setStripeLinks] = useState(getSavedStripeLinks());
   const [stripeSavedSuccess, setStripeSavedSuccess] = useState(false);
 
+  // WhatsApp de Suporte do SaaS
+  const [supportPhoneInput, setSupportPhoneInput] = useState(
+    localStorage.getItem('docelucro_support_whatsapp') || '5511999999999'
+  );
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile({
@@ -47,6 +56,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => 
       pixKey,
       hourlyLaborRate: Number(hourlyRate)
     });
+    localStorage.setItem('docelucro_support_whatsapp', supportPhoneInput);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
@@ -240,6 +250,25 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
               onChange={(e) => setHourlyRate(Number(e.target.value))}
             />
           </div>
+
+          {isAdmin && (
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <MessageCircle size={15} color="#25D366" />
+                <span>WhatsApp Oficial do Suporte (Botão Flutuante)</span>
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                value={supportPhoneInput}
+                onChange={(e) => setSupportPhoneInput(e.target.value)}
+                placeholder="5511999999999 (com código do país e DDD)"
+              />
+              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                Número onde as confeiteiras e visitantes abrirão o WhatsApp para tirar dúvidas.
+              </span>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
@@ -305,6 +334,45 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
                 Cancelar Assinatura & Cortar Cobrança
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Informações Legais, LGPD & Termos de Uso */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ShieldCheck size={18} color="var(--primary)" />
+              <span>Segurança, Suporte & Políticas Legais</span>
+            </h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--sage-700)', background: 'var(--sage-50)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
+              Conformidade LGPD
+            </span>
+          </div>
+
+          <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            O <strong>DoceLucro</strong> segue rigorosamente os padrões de segurança e proteção de dados. Todas as receitas e dados cadastrados são de propriedade exclusiva do seu ateliê.
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => onOpenLegal?.('terms')}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <FileText size={15} />
+              <span>Ver Termos de Uso do Serviço</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenLegal?.('privacy')}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <ShieldCheck size={15} />
+              <span>Ver Política de Privacidade (LGPD)</span>
+            </button>
           </div>
         </div>
 

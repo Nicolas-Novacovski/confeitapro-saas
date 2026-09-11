@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { BRANDING } from '../config/branding';
 import { validatePasswordPolicy } from '../utils/security';
+import { LegalTermsModal } from '../components/LegalTermsModal';
+import { WhatsAppSupportButton } from '../components/WhatsAppSupportButton';
 
 interface LoginPageProps {
   onSuccessLogin: () => void;
@@ -51,6 +53,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFirebaseSetup, setShowFirebaseSetup] = useState(false);
+  const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<'terms' | 'privacy'>('terms');
+
+  const openLegalModal = (tab: 'terms' | 'privacy') => {
+    setLegalTab(tab);
+    setIsLegalOpen(true);
+  };
 
   const passwordRules = validatePasswordPolicy(password);
 
@@ -624,6 +633,50 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
               <span>Entrar como Visitante no Modo Demo</span>
             </button>
           </div>
+
+          {/* Links de Termos e Privacidade (Obrigatórios para Stripe e Meta Ads) */}
+          <div style={{
+            textAlign: 'center',
+            marginTop: '1.25rem',
+            fontSize: '0.725rem',
+            color: 'var(--text-muted)',
+            lineHeight: 1.5
+          }}>
+            Ao continuar, você concorda com nossos{' '}
+            <button
+              type="button"
+              onClick={() => openLegalModal('terms')}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: 'var(--primary)',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: 'inherit',
+                fontWeight: 600
+              }}
+            >
+              Termos de Uso
+            </button>{' '}
+            e{' '}
+            <button
+              type="button"
+              onClick={() => openLegalModal('privacy')}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: 'var(--primary)',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: 'inherit',
+                fontWeight: 600
+              }}
+            >
+              Política de Privacidade (LGPD)
+            </button>.
+          </div>
         </div>
       </div>
 
@@ -636,6 +689,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           }}
         />
       )}
+
+      {/* Modal de Termos de Uso e Política de Privacidade */}
+      <LegalTermsModal
+        isOpen={isLegalOpen}
+        onClose={() => setIsLegalOpen(false)}
+        initialTab={legalTab}
+      />
+
+      {/* Botão Flutuante de Suporte WhatsApp para tirar dúvidas antes da compra */}
+      <WhatsAppSupportButton />
     </div>
   );
 };

@@ -13,6 +13,8 @@ import { RoiLossCalculatorModal } from './components/RoiLossCalculatorModal';
 import { SecurityPanelModal } from './components/SecurityPanelModal';
 import { ActiveSessionModal } from './components/ActiveSessionModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { WhatsAppSupportButton } from './components/WhatsAppSupportButton';
+import { LegalTermsModal } from './components/LegalTermsModal';
 
 import { Dashboard } from './pages/Dashboard';
 import { RecipesPage } from './pages/RecipesPage';
@@ -41,6 +43,8 @@ const MainApp: React.FC = () => {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isActiveSessionModalOpen, setIsActiveSessionModalOpen] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy'>('terms');
 
   const [exportRecipe, setExportRecipe] = useState<Recipe | null>(null);
   const [aiPreselectedRecipe, setAiPreselectedRecipe] = useState<Recipe | null>(null);
@@ -240,6 +244,10 @@ const MainApp: React.FC = () => {
           {activeTab === 'settings' && (
             <SettingsPage
               onOpenPricing={() => setIsPricingModalOpen(true)}
+              onOpenLegal={(tab) => {
+                setLegalModalTab(tab);
+                setIsLegalModalOpen(true);
+              }}
             />
           )}
         </main>
@@ -306,6 +314,16 @@ const MainApp: React.FC = () => {
         onSelectTab={setActiveTab}
         onOpenMoreMenu={() => setIsMobileMenuOpen(true)}
       />
+
+      {/* Modal de Termos de Uso e Política de Privacidade */}
+      <LegalTermsModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
+
+      {/* Botão Flutuante Oficial do WhatsApp para Atendimento/Suporte */}
+      <WhatsAppSupportButton />
     </div>
   );
 };
