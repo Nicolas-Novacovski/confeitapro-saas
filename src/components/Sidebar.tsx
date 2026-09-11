@@ -11,7 +11,9 @@ import {
   ChevronRight,
   TrendingDown,
   ShieldCheck,
-  LogIn
+  LogIn,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 
 export type NavTab = 
@@ -29,15 +31,17 @@ interface SidebarProps {
   onSelectTab: (tab: NavTab) => void;
   onOpenPricing: () => void;
   onOpenLoginPage: () => void;
+  onOpenActiveSession?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   onOpenPricing,
-  onOpenLoginPage
+  onOpenLoginPage,
+  onOpenActiveSession
 }) => {
-  const { isPro, user } = useAuth();
+  const { isPro, user, logout } = useAuth();
 
   const menuItems = [
     { id: 'dashboard' as NavTab, label: 'Visão Geral', icon: LayoutDashboard },
@@ -204,7 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             gap: '0.65rem'
           }}>
             <Crown size={18} color="var(--sage-700)" />
-            <div>
+            <div style={{ flex: 1 }}>
               <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--sage-700)' }}>
                 Assinatura Pro Ativa
               </p>
@@ -215,16 +219,110 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Botão de alternar para a Tela Completa de Login */}
-        <button
-          onClick={onOpenLoginPage}
-          className="btn btn-ghost btn-sm"
-          style={{ width: '100%', fontSize: '0.775rem', color: 'var(--text-muted)', gap: '0.4rem', justifyContent: 'flex-start' }}
-          title="Ver página de login dedicada com depoimentos e cadastro"
-        >
-          <LogIn size={15} />
-          <span>{user ? 'Alternar Usuário / Tela de Login' : 'Tela de Login Dedicada'}</span>
-        </button>
+        {/* Card da Sessão Ativa e Logoff */}
+        {user ? (
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-light)',
+            padding: '0.75rem',
+            boxShadow: 'var(--shadow-xs)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.65rem'
+          }}>
+            <div 
+              onClick={onOpenActiveSession}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                cursor: onOpenActiveSession ? 'pointer' : 'default'
+              }}
+              title="Clique para ver detalhes da sessão ou gerenciar assinatura"
+            >
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
+                color: '#FFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                flexShrink: 0
+              }}>
+                {(user.displayName || user.email || 'C')[0].toUpperCase()}
+              </div>
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: '#22C55E',
+                    display: 'inline-block'
+                  }} />
+                  <strong style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-main)',
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden'
+                  }}>
+                    {user.displayName}
+                  </strong>
+                </div>
+                <span style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--text-muted)',
+                  display: 'block',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden'
+                }}>
+                  {user.bakeryName}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.5rem' }}>
+              {onOpenActiveSession && (
+                <button
+                  type="button"
+                  onClick={onOpenActiveSession}
+                  className="btn btn-ghost btn-sm"
+                  style={{ flex: 1, fontSize: '0.725rem', padding: '0.35rem 0.4rem', color: 'var(--text-body)' }}
+                >
+                  <UserCheck size={13} />
+                  <span>Sessão</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={logout}
+                className="btn btn-ghost btn-sm"
+                style={{ flex: 1, fontSize: '0.725rem', padding: '0.35rem 0.4rem', color: '#E11D48' }}
+                title="Desconectar do ConfeitaPro e voltar para a tela de login"
+              >
+                <LogOut size={13} />
+                <span>Sair (Logoff)</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenLoginPage}
+            className="btn btn-primary btn-sm"
+            style={{ width: '100%', fontSize: '0.8rem', gap: '0.4rem' }}
+          >
+            <LogIn size={15} />
+            <span>Fazer Login</span>
+          </button>
+        )}
       </div>
     </aside>
   );

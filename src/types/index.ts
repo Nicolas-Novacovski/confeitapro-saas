@@ -93,6 +93,7 @@ export interface UserProfile {
   isDemo?: boolean;
   stripeCustomerId?: string;
   subscriptionExpiresAt?: string;
+  sessionStartedAt?: string;
 }
 
 export interface AiChatMessage {

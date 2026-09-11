@@ -23,6 +23,7 @@ interface AuthContextType {
   loginDemo: () => void;
   logout: () => Promise<void>;
   upgradePlan: (plan: UserPlan) => void;
+  cancelSubscription: () => void;
   updateProfile: (data: Partial<UserProfile>) => void;
 }
 
@@ -40,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Falha ao restaurar usuário local:', e);
       }
     }
-    return INITIAL_USER;
+    return null;
   });
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -79,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string) => {
     setLoading(true);
     try {
+      const now = new Date().toISOString();
       if (isFirebaseConfigured && auth) {
         await signInWithEmailAndPassword(auth, email, pass);
       } else {
@@ -90,7 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
-          isDemo: false
+          isDemo: false,
+          sessionStartedAt: now
         });
       }
     } finally {
@@ -101,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, pass: string, name: string, bakery: string) => {
     setLoading(true);
     try {
+      const now = new Date().toISOString();
       if (isFirebaseConfigured && auth) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         setUser({
@@ -111,7 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
-          isDemo: false
+          isDemo: false,
+          sessionStartedAt: now
         });
       } else {
         setUser({
@@ -122,7 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
-          isDemo: false
+          isDemo: false,
+          sessionStartedAt: now
         });
       }
     } finally {
@@ -133,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
+      const now = new Date().toISOString();
       if (isFirebaseConfigured && auth && googleProvider) {
         const cred = await signInWithPopup(auth, googleProvider);
         if (cred.user) {
@@ -145,7 +152,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             hourlyLaborRate: prev?.hourlyLaborRate || 28,
             monthlyHoursTarget: 140,
             plan: prev?.plan || 'free',
-            isDemo: false
+            isDemo: false,
+            sessionStartedAt: now
           }));
         }
       } else {
@@ -158,7 +166,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
-          isDemo: false
+          isDemo: false,
+          sessionStartedAt: now
         });
       }
     } finally {
@@ -169,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerWithGoogle = async (bakeryName?: string) => {
     setLoading(true);
     try {
+      const now = new Date().toISOString();
       if (isFirebaseConfigured && auth && googleProvider) {
         const cred = await signInWithPopup(auth, googleProvider);
         if (cred.user) {
@@ -181,7 +191,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             hourlyLaborRate: 28,
             monthlyHoursTarget: 140,
             plan: 'free',
-            isDemo: false
+            isDemo: false,
+            sessionStartedAt: now
           });
         }
       } else {
@@ -193,7 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
-          isDemo: false
+          isDemo: false,
+          sessionStartedAt: now
         });
       }
     } finally {
@@ -202,14 +214,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginDemo = () => {
-    setUser(INITIAL_USER);
+    setUser({
+      ...INITIAL_USER,
+      sessionStartedAt: new Date().toISOString()
+    });
   };
 
   const logout = async () => {
-    if (isFirebaseConfigured && auth) {
-      await signOut(auth);
+    try {
+      if (isFirebaseConfigured && auth) {
+        await signOut(auth);
+      }
+    } catch (e) {
+      console.error('Erro no logout:', e);
     }
+    localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+    localStorage.removeItem('confeitapro_pending_checkout_plan');
     setUser(null);
+  };
+
+  const cancelSubscription = () => {
+    if (!user) return;
+    setUser({ ...user, plan: 'free' });
+    localStorage.removeItem('confeitapro_pending_checkout_plan');
   };
 
   const upgradePlan = (plan: UserPlan) => {
@@ -245,6 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginDemo,
         logout,
         upgradePlan,
+        cancelSubscription,
         updateProfile
       }}
     >

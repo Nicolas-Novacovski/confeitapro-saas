@@ -10,7 +10,7 @@ interface PricingPlansModalProps {
 }
 
 export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose }) => {
-  const { user, upgradePlan } = useAuth();
+  const { user, upgradePlan, cancelSubscription } = useAuth();
   const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<StripePlan | null>(null);
 
   const handleSelectPlan = (plan: StripePlan) => {
@@ -185,13 +185,30 @@ export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose })
                   {/* Botão de Ação */}
                   <div>
                     {isCurrent ? (
-                      <button
-                        disabled
-                        className="btn btn-secondary btn-sm"
-                        style={{ width: '100%', opacity: 0.7, cursor: 'default' }}
-                      >
-                        Seu Plano Atual
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        <button
+                          disabled
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: '100%', opacity: 0.85, cursor: 'default', fontWeight: 700 }}
+                        >
+                          Seu Plano Atual (Ativo)
+                        </button>
+                        {plan.id !== 'free' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm('Tem certeza que deseja cancelar sua assinatura do plano ' + plan.name + ' e interromper a cobrança? Você retornará ao plano Gratuito.')) {
+                                cancelSubscription();
+                                alert('Assinatura cancelada com sucesso. Cobrança interrompida e conta retornada para o plano Grátis.');
+                              }
+                            }}
+                            className="btn btn-ghost btn-sm"
+                            style={{ width: '100%', fontSize: '0.725rem', color: '#E11D48', padding: '0.3rem' }}
+                          >
+                            Cancelar Assinatura & Cortar Cobrança
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <button
                         onClick={() => handleSelectPlan(plan)}

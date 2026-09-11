@@ -20,7 +20,7 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => {
-  const { user, updateProfile, isPro } = useAuth();
+  const { user, updateProfile, isPro, cancelSubscription } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bakeryName, setBakeryName] = useState(user?.bakeryName || '');
@@ -203,10 +203,27 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
             </p>
           </div>
 
-          <button onClick={onOpenPricing} className="btn btn-pro">
-            <Crown size={16} />
-            <span>{isPro ? 'Alterar ou Gerenciar Plano' : 'Fazer Upgrade para o Pro'}</span>
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={onOpenPricing} className="btn btn-pro">
+              <Crown size={16} />
+              <span>{isPro ? 'Alterar Plano' : 'Fazer Upgrade para o Pro'}</span>
+            </button>
+            {isPro && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Deseja realmente cancelar sua assinatura do ConfeitaPro e cortar qualquer cobrança futura do Stripe? Você voltará ao plano Grátis.')) {
+                    cancelSubscription();
+                    alert('Sua assinatura foi cancelada. Cobrança interrompida.');
+                  }
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#E11D48', borderColor: '#FECDD3', background: '#FFF1F2' }}
+              >
+                Cancelar Assinatura & Cortar Cobrança
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Configuração dos Links Diretos do Stripe Checkout */}

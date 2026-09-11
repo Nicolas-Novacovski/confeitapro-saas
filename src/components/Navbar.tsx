@@ -1,21 +1,23 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Plus, ChefHat, LogIn, Crown, User as UserIcon } from 'lucide-react';
+import { Sparkles, Plus, ChefHat, LogIn, Crown, User as UserIcon, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   onOpenNewRecipe: () => void;
   onOpenPricing: () => void;
   onOpenAuth: () => void;
   onOpenLaborCalc: () => void;
+  onOpenActiveSession?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewRecipe,
   onOpenPricing,
   onOpenAuth,
-  onOpenLaborCalc
+  onOpenLaborCalc,
+  onOpenActiveSession
 }) => {
-  const { user, isPro } = useAuth();
+  const { user, isPro, logout } = useAuth();
 
   return (
     <header className="navbar" style={{
@@ -129,29 +131,69 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span>Nova Receita</span>
         </button>
 
-        {/* Usuário / Login */}
+        {/* Usuário / Login / Sessão Ativa */}
         {user ? (
-          <button
-            onClick={onOpenAuth}
-            className="btn btn-ghost btn-sm"
-            style={{ padding: '0.35rem', borderRadius: '50%', background: 'var(--primary-50)' }}
-            title={`Conectado como ${user.displayName || user.email}`}
-          >
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
-              color: '#FFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.85rem'
-            }}>
-              {(user.displayName || user.email || 'C')[0].toUpperCase()}
-            </div>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              onClick={onOpenActiveSession || onOpenAuth}
+              className="btn btn-ghost btn-sm"
+              style={{
+                padding: '0.35rem 0.65rem 0.35rem 0.4rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--bg-canvas)',
+                border: '1px solid var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+              title={`Sessão ativa: ${user.displayName || user.email}. Clique para ver detalhes da sessão.`}
+            >
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
+                  color: '#FFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '0.8rem'
+                }}>
+                  {(user.displayName || user.email || 'C')[0].toUpperCase()}
+                </div>
+                <span style={{
+                  position: 'absolute',
+                  bottom: '-1px',
+                  right: '-1px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#22C55E',
+                  border: '1.5px solid #FFFFFF'
+                }} />
+              </div>
+
+              <div style={{ textAlign: 'left', lineHeight: 1.1 }}>
+                <span style={{ fontSize: '0.775rem', fontWeight: 700, color: 'var(--text-main)', display: 'block' }}>
+                  {user.displayName.split(' ')[0]}
+                </span>
+                <span style={{ fontSize: '0.675rem', color: 'var(--sage-700)', fontWeight: 600 }}>
+                  Sessão Ativa
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={logout}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.4rem', color: 'var(--text-muted)' }}
+              title="Sair da Conta (Fazer Logoff)"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         ) : (
           <button
             onClick={onOpenAuth}

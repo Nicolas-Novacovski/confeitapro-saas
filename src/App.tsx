@@ -11,6 +11,7 @@ import { AuthModal } from './components/AuthModal';
 import { ExportBudgetModal } from './components/ExportBudgetModal';
 import { RoiLossCalculatorModal } from './components/RoiLossCalculatorModal';
 import { SecurityPanelModal } from './components/SecurityPanelModal';
+import { ActiveSessionModal } from './components/ActiveSessionModal';
 
 import { Dashboard } from './pages/Dashboard';
 import { RecipesPage } from './pages/RecipesPage';
@@ -37,13 +38,14 @@ const MainApp: React.FC = () => {
   const [isLaborCalcModalOpen, setIsLaborCalcModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isActiveSessionModalOpen, setIsActiveSessionModalOpen] = useState(false);
 
   const [exportRecipe, setExportRecipe] = useState<Recipe | null>(null);
   const [aiPreselectedRecipe, setAiPreselectedRecipe] = useState<Recipe | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   const { getFinancials } = useData();
-  const { upgradePlan } = useAuth();
+  const { user, upgradePlan } = useAuth();
 
   // Detecta retorno de sucesso do Stripe Checkout e ativa o plano instantaneamente
   useEffect(() => {
@@ -108,7 +110,7 @@ const MainApp: React.FC = () => {
     setExportRecipe(recipe);
   };
 
-  if (showLoginPage) {
+  if (!user || showLoginPage) {
     return <LoginPage onSuccessLogin={() => setShowLoginPage(false)} />;
   }
 
@@ -120,6 +122,7 @@ const MainApp: React.FC = () => {
         onSelectTab={setActiveTab}
         onOpenPricing={() => setIsPricingModalOpen(true)}
         onOpenLoginPage={() => setShowLoginPage(true)}
+        onOpenActiveSession={() => setIsActiveSessionModalOpen(true)}
       />
 
       {/* Conteúdo Principal */}
@@ -129,6 +132,7 @@ const MainApp: React.FC = () => {
           onOpenPricing={() => setIsPricingModalOpen(true)}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onOpenLaborCalc={() => setIsLaborCalcModalOpen(true)}
+          onOpenActiveSession={() => setIsActiveSessionModalOpen(true)}
         />
 
         {/* Banner de Celebração ao Retornar do Stripe */}
@@ -270,6 +274,16 @@ const MainApp: React.FC = () => {
       {isAuthModalOpen && (
         <AuthModal
           onClose={() => setIsAuthModalOpen(false)}
+        />
+      )}
+
+      {isActiveSessionModalOpen && (
+        <ActiveSessionModal
+          onClose={() => setIsActiveSessionModalOpen(false)}
+          onOpenPricing={() => {
+            setIsActiveSessionModalOpen(false);
+            setIsPricingModalOpen(true);
+          }}
         />
       )}
 
