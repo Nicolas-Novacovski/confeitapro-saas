@@ -199,52 +199,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const passwordHash = await hashPasswordSecurely(pass);
 
       if (isFirebaseConfigured && auth) {
-        const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
         try {
-          await sendEmailVerification(cred.user);
-        } catch (e) {
-          console.warn('Erro ao disparar verificação de email Firebase:', e);
+          const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
+          // Opcional: envia link secundário por e-mail sem bloquear
+          try {
+            await sendEmailVerification(cred.user);
+          } catch {}
+          // Desconecta a sessão automática do Firebase para exigir ativação por código
+          await signOut(auth);
+        } catch (e: any) {
+          // Se o e-mail já existir no Firebase, informa com clareza
+          if (e?.code === 'auth/email-already-in-use') {
+            throw new Error('Este e-mail já está cadastrado. Faça login com sua senha.');
+          }
+          console.warn('Registro Firebase fallback:', e);
         }
-
-        // NÃO loga o usuário no sistema ainda!
-        // Desconecta a sessão automática do Firebase para exigir ativação
-        await signOut(auth);
-
-        const pendingData: PendingActivation = {
-          email: normalizedEmail,
-          name,
-          bakery,
-          hashedPass: passwordHash,
-          activationCode,
-          createdAt: Date.now()
-        };
-
-        setPendingActivation(pendingData);
-        return { codeSent: true, devCode: activationCode };
-      } else {
-        // Modo local seguro: salva no cofre criptografado como pendente
-        const vault = getLocalUsersVault();
-        vault[normalizedEmail] = {
-          email: normalizedEmail,
-          name,
-          bakery,
-          passwordHash,
-          isVerified: false
-        };
-        saveLocalUsersVault(vault);
-
-        const pendingData: PendingActivation = {
-          email: normalizedEmail,
-          name,
-          bakery,
-          hashedPass: passwordHash,
-          activationCode,
-          createdAt: Date.now()
-        };
-
-        setPendingActivation(pendingData);
-        return { codeSent: true, devCode: activationCode };
       }
+
+      // Salva no cofre seguro local como usuário pendente de ativação
+      const vault = getLocalUsersVault();
+      vault[normalizedEmail] = {
+        email: normalizedEmail,
+        name,
+        bakery,
+        passwordHash,
+        isVerified: false
+      };
+      saveLocalUsersVault(vault);
+
+      const pendingData: PendingActivation = {
+        email: normalizedEmail,
+        name,
+        bakery,
+        hashedPass: passwordHash,
+        activationCode,
+        createdAt: Date.now()
+      };
+
+      setPendingActivation(pendingData);
+      return { codeSent: true, devCode: activationCode };
     } finally {
       setLoading(false);
     }
