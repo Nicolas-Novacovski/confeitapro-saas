@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Regra padrão: proibir acesso não autenticado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // 1. Coleção de Usuários: cada usuário só pode ler e alterar seu próprio perfil
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 2. Coleção de Ingredientes: isolamento estrito por usuário
+    match /users/{userId}/ingredients/{ingredientId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Validação: não permitir preços negativos ou injeções
+      allow create, update: if request.resource.data.packagePrice >= 0 &&
+                               request.resource.data.packageSize > 0;
+    }
+    
+    // 3. Coleção de Receitas: acesso estritamente do dono da receita
+    match /users/{userId}/recipes/{recipeId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Validação: margem e rendimento devem ser válidos
+      allow create, update: if request.resource.data.yieldAmount > 0 &&
+                               request.resource.data.desiredProfitMargin >= 0;
+    }
+  }
+}

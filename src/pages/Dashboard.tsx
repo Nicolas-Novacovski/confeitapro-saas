@@ -230,6 +230,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </button>
       </div>
 
+      {/* Banner de Alto Impacto para Conversão: Prejuízo Evitado */}
+      <div style={{
+        background: 'linear-gradient(135deg, #FFF1F2 0%, #FFFDF9 50%, #F0FDF4 100%)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '1.5rem 1.75rem',
+        border: '2px solid #FECDD3',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1.25rem',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div style={{ maxWidth: '640px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.6rem', background: '#FEE2E2', borderRadius: 'var(--radius-full)', color: '#DC2626', fontSize: '0.725rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+            <span>⚠️ ALERTA DE PREJUÍZO INVISÍVEL</span>
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+            Você sabe quanto dinheiro está perdendo por mês cobrando errado?
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
+            Confeiteiras perdem em média <strong>R$ 380 a R$ 850 todos os meses</strong> ao esquecer o gás do forno, as forminhas e o tempo de batedeira. Simule agora e descubra quanto você pode recuperar!
+          </p>
+        </div>
+
+        <button
+          onClick={() => onSelectTab('roi-calc')}
+          className="btn btn-primary"
+          style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)' }}
+        >
+          <span>Simular Meu Prejuízo Mensal</span>
+        </button>
+      </div>
+
       {/* Seção de Receitas Recentes */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>

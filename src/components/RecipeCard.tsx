@@ -36,7 +36,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
       flexDirection: 'column',
       justifyContent: 'space-between',
       gap: '1.25rem',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
       {/* Topo do Card: Categoria, Título e Rendimento */}
       <div>
@@ -146,48 +147,55 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         </span>
       </div>
 
-      {/* Ações do Card */}
+      {/* Ações do Card - Organizadas com responsividade e sem overflow */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr auto auto',
+        display: 'flex',
+        flexDirection: 'column',
         gap: '0.5rem',
-        paddingTop: '0.35rem'
+        paddingTop: '0.5rem',
+        borderTop: '1px solid var(--border-light)'
       }}>
-        <button
-          onClick={() => onConsultAi(recipe)}
-          className="btn btn-pro btn-sm"
-          title="Dicas da Chef IA para otimizar custo e criar legenda"
-        >
-          <Sparkles size={14} />
-          <span>Chef IA</span>
-        </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          <button
+            onClick={() => onConsultAi(recipe)}
+            className="btn btn-pro btn-sm"
+            style={{ fontSize: '0.8rem', padding: '0.5rem 0.6rem', width: '100%' }}
+            title="Dicas da Chef IA para otimizar custo e criar legenda"
+          >
+            <Sparkles size={14} />
+            <span>Chef IA</span>
+          </button>
 
-        <button
-          onClick={() => onExport(recipe)}
-          className="btn btn-secondary btn-sm"
-          title="Exportar orçamento para WhatsApp ou imprimir ficha técnica"
-        >
-          <Share2 size={14} />
-          <span>Orçamento</span>
-        </button>
+          <button
+            onClick={() => onExport(recipe)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.8rem', padding: '0.5rem 0.6rem', width: '100%' }}
+            title="Exportar orçamento para WhatsApp ou imprimir ficha técnica"
+          >
+            <Share2 size={14} />
+            <span>Orçamento</span>
+          </button>
+        </div>
 
-        <button
-          onClick={() => onEdit(recipe)}
-          className="btn btn-ghost btn-sm"
-          style={{ padding: '0.45rem' }}
-          title="Editar receita"
-        >
-          <Edit3 size={16} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.15rem' }}>
+          <button
+            onClick={() => onEdit(recipe)}
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '0.775rem', padding: '0.35rem 0.6rem', color: 'var(--text-body)', gap: '0.35rem' }}
+          >
+            <Edit3 size={14} />
+            <span>Editar</span>
+          </button>
 
-        <button
-          onClick={() => onDelete(recipe.id)}
-          className="btn btn-ghost btn-sm"
-          style={{ padding: '0.45rem', color: '#CA5F71' }}
-          title="Excluir receita"
-        >
-          <Trash2 size={16} />
-        </button>
+          <button
+            onClick={() => onDelete(recipe.id)}
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '0.775rem', padding: '0.35rem 0.6rem', color: '#CA5F71', gap: '0.35rem' }}
+          >
+            <Trash2 size={14} />
+            <span>Excluir</span>
+          </button>
+        </div>
       </div>
     </div>
   );

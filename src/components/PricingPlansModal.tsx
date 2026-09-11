@@ -21,8 +21,9 @@ export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose })
     }
 
     if (plan.stripePaymentLink) {
-      // Redireciona imediatamente para a página de checkout oficial do Stripe
-      window.open(plan.stripePaymentLink, '_blank') || (window.location.href = plan.stripePaymentLink);
+      // Salva o plano para ativar assim que o Stripe redirecionar de volta
+      localStorage.setItem('confeitapro_pending_checkout_plan', plan.id);
+      window.location.href = plan.stripePaymentLink;
       return;
     }
 

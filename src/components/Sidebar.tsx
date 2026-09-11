@@ -8,23 +8,36 @@ import {
   Clock, 
   Settings, 
   Crown,
-  ChevronRight
+  ChevronRight,
+  TrendingDown,
+  ShieldCheck,
+  LogIn
 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'recipes' | 'ingredients' | 'ai-chef' | 'labor-calc' | 'settings';
+export type NavTab = 
+  | 'dashboard' 
+  | 'recipes' 
+  | 'ingredients' 
+  | 'ai-chef' 
+  | 'labor-calc' 
+  | 'roi-calc' 
+  | 'security' 
+  | 'settings';
 
 interface SidebarProps {
   activeTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   onOpenPricing: () => void;
+  onOpenLoginPage: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
-  onOpenPricing
+  onOpenPricing,
+  onOpenLoginPage
 }) => {
-  const { isPro } = useAuth();
+  const { isPro, user } = useAuth();
 
   const menuItems = [
     { id: 'dashboard' as NavTab, label: 'Visão Geral', icon: LayoutDashboard },
@@ -37,29 +50,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: 'PRO',
       isSpecial: true
     },
+    { 
+      id: 'roi-calc' as NavTab, 
+      label: 'Calculadora de Prejuízo', 
+      icon: TrendingDown,
+      badge: 'NOVO',
+      badgeColor: '#EF4444'
+    },
     { id: 'labor-calc' as NavTab, label: 'Calcular Minha Hora', icon: Clock },
+    { id: 'security' as NavTab, label: 'Blindagem & Segurança', icon: ShieldCheck },
     { id: 'settings' as NavTab, label: 'Configurações', icon: Settings },
   ];
 
   return (
     <aside style={{
       width: '260px',
+      height: '100vh',
+      position: 'sticky',
+      top: 0,
       background: '#FFFFFF',
       borderRight: '1px solid var(--border-light)',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      padding: '1.5rem 1rem',
-      flexShrink: 0
+      padding: '1.25rem 1rem',
+      flexShrink: 0,
+      overflowY: 'auto',
+      zIndex: 30
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         <p style={{
           fontSize: '0.725rem',
           fontWeight: 800,
           textTransform: 'uppercase',
           color: 'var(--text-light)',
           letterSpacing: '0.05em',
-          padding: '0.2rem 0.75rem 0.5rem'
+          padding: '0.2rem 0.75rem 0.4rem'
         }}>
           Menu Principal
         </p>
@@ -76,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0.75rem 0.85rem',
+                padding: '0.65rem 0.85rem',
                 borderRadius: 'var(--radius-md)',
                 background: isActive 
                   ? (item.isSpecial ? 'var(--lavender-50)' : 'var(--primary-50)') 
@@ -89,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ? (item.isSpecial ? 'var(--lavender-300)' : 'var(--primary-200)') 
                   : 'transparent',
                 fontWeight: isActive ? 700 : 500,
-                fontSize: '0.925rem',
+                fontSize: '0.875rem',
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all var(--transition-fast)'
@@ -109,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon 
-                  size={19} 
+                  size={18} 
                   color={isActive 
                     ? (item.isSpecial ? 'var(--lavender-500)' : 'var(--primary)') 
                     : 'var(--text-muted)'
@@ -120,12 +146,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {item.badge && (
                 <span style={{
-                  fontSize: '0.65rem',
+                  fontSize: '0.625rem',
                   fontWeight: 800,
-                  padding: '0.15rem 0.45rem',
+                  padding: '0.15rem 0.4rem',
                   borderRadius: '4px',
-                  background: isPro ? 'var(--sage-100)' : 'linear-gradient(135deg, #A27BDB 0%, #7653B6 100%)',
-                  color: isPro ? 'var(--sage-700)' : '#FFF'
+                  background: item.badgeColor ? '#FEE2E2' : isPro ? 'var(--sage-100)' : 'linear-gradient(135deg, #A27BDB 0%, #7653B6 100%)',
+                  color: item.badgeColor || (isPro ? 'var(--sage-700)' : '#FFF')
                 }}>
                   {item.badge}
                 </span>
@@ -135,80 +161,71 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {/* Banner de Upgrade para o Plano PRO se for Free */}
-      {!isPro ? (
-        <div style={{
-          background: 'linear-gradient(145deg, #F9F5FE 0%, #FFF3F5 100%)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '1.25rem 1rem',
-          border: '1.5px solid var(--lavender-300)',
-          boxShadow: 'var(--shadow-sm)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1rem' }}>
+        {/* Banner de Upgrade para o Plano PRO se for Free */}
+        {!isPro ? (
           <div style={{
-            position: 'absolute',
-            top: '-15px',
-            right: '-15px',
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            background: 'rgba(232, 139, 154, 0.15)',
-            pointerEvents: 'none'
-          }} />
+            background: 'linear-gradient(145deg, #F9F5FE 0%, #FFF3F5 100%)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.15rem 1rem',
+            border: '1.5px solid var(--lavender-300)',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+              <Crown size={16} color="#8E7AC4" />
+              <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#523A84' }}>
+                Plano Pro Confeitaria
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
-            <Crown size={18} color="#8E7AC4" />
-            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#523A84' }}>
-              Plano Pro Confeitaria
-            </span>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', lineHeight: 1.4, marginBottom: '0.75rem' }}>
+              Receitas ilimitadas, IA gastronômica para reduzir custos e orçamentos para WhatsApp.
+            </p>
+
+            <button
+              onClick={onOpenPricing}
+              className="btn btn-pro btn-sm"
+              style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem' }}
+            >
+              <span>Liberar por R$ 29,90</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
-
-          <p style={{ fontSize: '0.775rem', color: 'var(--text-body)', lineHeight: 1.45, marginBottom: '0.9rem' }}>
-            Receitas ilimitadas, IA gastronômica para reduzir custos e orçamentos para WhatsApp.
-          </p>
-
-          <button
-            onClick={onOpenPricing}
-            className="btn btn-pro btn-sm"
-            style={{ width: '100%', fontSize: '0.825rem', padding: '0.55rem' }}
-          >
-            <span>Liberar por R$ 29,90</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      ) : (
-        <div style={{
-          background: 'var(--sage-50)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '1rem',
-          border: '1px solid var(--sage-300)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem'
-        }}>
+        ) : (
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'var(--sage-100)',
+            background: 'var(--sage-50)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '0.85rem 1rem',
+            border: '1px solid var(--sage-300)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--sage-700)'
+            gap: '0.65rem'
           }}>
-            <Crown size={20} />
+            <Crown size={18} color="var(--sage-700)" />
+            <div>
+              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--sage-700)' }}>
+                Assinatura Pro Ativa
+              </p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Acesso total liberado
+              </p>
+            </div>
           </div>
-          <div>
-            <p style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--sage-700)' }}>
-              Assinatura Ativa
-            </p>
-            <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-              Acesso total ilimitado
-            </p>
-          </div>
-        </div>
-      )}
+        )}
+
+        {/* Botão de alternar para a Tela Completa de Login */}
+        <button
+          onClick={onOpenLoginPage}
+          className="btn btn-ghost btn-sm"
+          style={{ width: '100%', fontSize: '0.775rem', color: 'var(--text-muted)', gap: '0.4rem', justifyContent: 'flex-start' }}
+          title="Ver página de login dedicada com depoimentos e cadastro"
+        >
+          <LogIn size={15} />
+          <span>{user ? 'Alternar Usuário / Tela de Login' : 'Tela de Login Dedicada'}</span>
+        </button>
+      </div>
     </aside>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 import { Navbar } from './components/Navbar';
@@ -9,17 +9,23 @@ import { LaborCalculatorModal } from './components/LaborCalculatorModal';
 import { PricingPlansModal } from './components/PricingPlansModal';
 import { AuthModal } from './components/AuthModal';
 import { ExportBudgetModal } from './components/ExportBudgetModal';
+import { RoiLossCalculatorModal } from './components/RoiLossCalculatorModal';
+import { SecurityPanelModal } from './components/SecurityPanelModal';
 
 import { Dashboard } from './pages/Dashboard';
 import { RecipesPage } from './pages/RecipesPage';
 import { IngredientsPage } from './pages/IngredientsPage';
 import { AiAdvisorPage } from './pages/AiAdvisorPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { LoginPage } from './pages/LoginPage';
 
 import { Recipe, Ingredient } from './types';
+import confetti from 'canvas-confetti';
+import { Check, X, Sparkles } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
+  const [showLoginPage, setShowLoginPage] = useState(false);
 
   // Modals state
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
@@ -34,8 +40,43 @@ const MainApp: React.FC = () => {
 
   const [exportRecipe, setExportRecipe] = useState<Recipe | null>(null);
   const [aiPreselectedRecipe, setAiPreselectedRecipe] = useState<Recipe | null>(null);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   const { getFinancials } = useData();
+  const { upgradePlan } = useAuth();
+
+  // Detecta retorno de sucesso do Stripe Checkout e ativa o plano instantaneamente
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasSuccessParam = 
+      params.get('subscription') === 'success' || 
+      params.get('status') === 'success' || 
+      Boolean(params.get('session_id')) ||
+      params.get('checkout') === 'success';
+
+    const pendingPlan = localStorage.getItem('confeitapro_pending_checkout_plan');
+
+    if (hasSuccessParam || (pendingPlan && window.location.search.length > 0)) {
+      const planToActivate = (params.get('plan') || pendingPlan || 'pro') as 'pro' | 'master';
+      upgradePlan(planToActivate);
+
+      setSuccessBanner(
+        `🎉 Parabéns! Sua assinatura do Plano ${planToActivate === 'master' ? 'Ateliê Master' : 'Confeiteira Pro'} foi ativada com sucesso! Você agora tem acesso ilimitado a todas as receitas e à Chef IA.`
+      );
+
+      try {
+        confetti({
+          particleCount: 160,
+          spread: 100,
+          origin: { y: 0.4 },
+          colors: ['#E88B9A', '#9ECDA8', '#F3CA77', '#C2B3E4']
+        });
+      } catch (e) {}
+
+      localStorage.removeItem('confeitapro_pending_checkout_plan');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Handlers
   const handleOpenNewRecipe = () => {
@@ -67,6 +108,10 @@ const MainApp: React.FC = () => {
     setExportRecipe(recipe);
   };
 
+  if (showLoginPage) {
+    return <LoginPage onSuccessLogin={() => setShowLoginPage(false)} />;
+  }
+
   return (
     <div className="app-container">
       {/* Menu Lateral Fixo */}
@@ -74,6 +119,7 @@ const MainApp: React.FC = () => {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onOpenPricing={() => setIsPricingModalOpen(true)}
+        onOpenLoginPage={() => setShowLoginPage(true)}
       />
 
       {/* Conteúdo Principal */}
@@ -84,6 +130,46 @@ const MainApp: React.FC = () => {
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onOpenLaborCalc={() => setIsLaborCalcModalOpen(true)}
         />
+
+        {/* Banner de Celebração ao Retornar do Stripe */}
+        {successBanner && (
+          <div style={{
+            background: 'linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)',
+            borderBottom: '2px solid #86EFAC',
+            padding: '1rem 2rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.15)',
+            animation: 'fadeIn 0.3s ease-out'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: '#22C55E',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Check size={20} />
+              </div>
+              <p style={{ fontSize: '0.925rem', fontWeight: 700, color: '#14532D' }}>
+                {successBanner}
+              </p>
+            </div>
+            <button
+              onClick={() => setSuccessBanner(null)}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.35rem', color: '#14532D' }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
 
         <main className="page-container">
           {activeTab === 'dashboard' && (
@@ -121,9 +207,24 @@ const MainApp: React.FC = () => {
             />
           )}
 
+          {activeTab === 'roi-calc' && (
+            <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+              <RoiLossCalculatorModal
+                onClose={() => setActiveTab('dashboard')}
+                onOpenPricing={() => setIsPricingModalOpen(true)}
+              />
+            </div>
+          )}
+
           {activeTab === 'labor-calc' && (
             <div style={{ maxWidth: '640px', margin: '0 auto' }}>
               <LaborCalculatorModal onClose={() => setActiveTab('dashboard')} />
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div style={{ maxWidth: '660px', margin: '0 auto' }}>
+              <SecurityPanelModal onClose={() => setActiveTab('dashboard')} />
             </div>
           )}
 
