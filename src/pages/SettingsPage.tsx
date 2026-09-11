@@ -13,8 +13,11 @@ import {
   User, 
   ExternalLink,
   Link2,
-  Trash2
+  Trash2,
+  Mail,
+  Send
 } from 'lucide-react';
+import { getEmailConfig, saveEmailConfig, sendActivationEmail } from '../utils/emailService';
 
 interface SettingsPageProps {
   onOpenPricing: () => void;
@@ -53,6 +56,43 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => 
     saveStripeLinks(stripeLinks);
     setStripeSavedSuccess(true);
     setTimeout(() => setStripeSavedSuccess(false), 3000);
+  };
+
+  // Configuração do Provedor de E-mails
+  const [emailConfig, setEmailConfig] = useState(getEmailConfig());
+  const [emailConfigSaved, setEmailConfigSaved] = useState(false);
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
+  const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
+
+  const handleSaveEmailConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveEmailConfig(emailConfig);
+    setEmailConfigSaved(true);
+    setTimeout(() => setEmailConfigSaved(false), 3000);
+  };
+
+  const handleSendTestEmail = async () => {
+    setTestEmailLoading(true);
+    setTestEmailStatus(null);
+    try {
+      const targetEmail = user?.email || 'nicolas.vendraminovacovski@gmail.com';
+      const res = await sendActivationEmail({
+        email: targetEmail,
+        name: user?.displayName || 'Nicolas Administrador',
+        bakery: user?.bakeryName || 'Ateliê DoceLucro',
+        activationCode: Math.floor(100000 + Math.random() * 900000).toString()
+      });
+      if (res.success) {
+        setTestEmailStatus(`✓ Sucesso: ${res.message}. Verifique a caixa de entrada (ou spam) de ${targetEmail}!`);
+      } else {
+        setTestEmailStatus(`❌ Falha: ${res.message}`);
+      }
+      setVaultRefresh((prev) => prev + 1);
+    } catch (e: any) {
+      setTestEmailStatus(`❌ Erro: ${e?.message || 'Falha ao despachar e-mail'}`);
+    } finally {
+      setTestEmailLoading(false);
+    }
   };
 
   const [vaultRefresh, setVaultRefresh] = useState(0);
@@ -450,6 +490,132 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
                   </p>
                 </div>
               </div>
+
+              {/* Configuração do Disparador de E-mails Reais (Brevo, EmailJS, Resend, Webhook) */}
+              <form onSubmit={handleSaveEmailConfig} style={{
+                background: 'var(--bg-subtle)',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-light)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Mail size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                      Disparador de E-mails Reais com Código de 6 Dígitos
+                    </strong>
+                  </div>
+                  {emailConfigSaved && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--sage-700)', fontWeight: 600 }}>
+                      ✓ Configurações de e-mail salvas!
+                    </span>
+                  )}
+                </div>
+
+                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  Para que o código de 6 dígitos chegue <strong>na caixa de entrada real do Gmail</strong> das confeiteiras (e não apenas no cofre interno), selecione e conecte um provedor gratuito de e-mail (recomendamos <strong>Brevo</strong> com 300 e-mails grátis/dia ou <strong>EmailJS</strong>):
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>
+                      Chave de API Brevo (Sendinblue)
+                      <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noreferrer" style={{ fontSize: '0.7rem', color: 'var(--primary)', marginLeft: '0.4rem', textDecoration: 'underline' }}>
+                        Obter grátis ↗
+                      </a>
+                    </label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="xkeysib-..."
+                      value={emailConfig.brevoApiKey || ''}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, brevoApiKey: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>
+                      Chave de API Resend
+                      <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" style={{ fontSize: '0.7rem', color: 'var(--primary)', marginLeft: '0.4rem', textDecoration: 'underline' }}>
+                        Obter grátis ↗
+                      </a>
+                    </label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="re_..."
+                      value={emailConfig.resendApiKey || ''}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, resendApiKey: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* EmailJS Opcional */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>EmailJS Service ID</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="service_..."
+                      value={emailConfig.emailjsServiceId || ''}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, emailjsServiceId: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>EmailJS Template ID</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="template_..."
+                      value={emailConfig.emailjsTemplateId || ''}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, emailjsTemplateId: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>EmailJS Public Key</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="user_..."
+                      value={emailConfig.emailjsPublicKey || ''}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, emailjsPublicKey: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {testEmailStatus && (
+                  <div style={{
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    background: testEmailStatus.startsWith('✓') ? 'var(--sage-50)' : '#FFF1F2',
+                    border: `1px solid ${testEmailStatus.startsWith('✓') ? 'var(--sage-300)' : '#FECDD3'}`,
+                    color: testEmailStatus.startsWith('✓') ? 'var(--sage-800)' : '#E11D48'
+                  }}>
+                    {testEmailStatus}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={handleSendTestEmail}
+                    disabled={testEmailLoading}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Send size={14} />
+                    <span>{testEmailLoading ? 'Enviando...' : 'Testar Disparo para Meu E-mail'}</span>
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-sm">
+                    Salvar Configuração de E-mail
+                  </button>
+                </div>
+              </form>
 
               {/* Gerenciamento de Usuários e E-mails Cadastrados (Exclusivo Administrador) */}
               <div style={{ background: 'var(--bg-subtle)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>

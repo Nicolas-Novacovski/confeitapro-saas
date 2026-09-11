@@ -49,10 +49,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           throw new Error(passwordRules.message || 'A senha precisa seguir os requisitos de segurança.');
         }
         const res = await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Doce Ateliê');
-        if (res.devCode) {
-          setDevCodeDisplay(res.devCode);
-          setActivationCodeInput(res.devCode);
-        }
+        setDevCodeDisplay(null);
+        setActivationCodeInput(''); // Vazio para exigir digitação
         setMode('activate');
       } else if (mode === 'activate') {
         await verifyActivationCode(activationCodeInput);

@@ -69,45 +69,166 @@ export function generateActivationEmailHtml(params: SendActivationEmailParams): 
   `;
 }
 
+export interface EmailDeliveryConfig {
+  provider: 'emailjs' | 'brevo' | 'resend' | 'webhook' | 'none';
+  // EmailJS
+  emailjsServiceId?: string;
+  emailjsTemplateId?: string;
+  emailjsPublicKey?: string;
+  // Brevo
+  brevoApiKey?: string;
+  // Resend
+  resendApiKey?: string;
+  // Webhook
+  webhookUrl?: string;
+}
+
+const EMAIL_CONFIG_KEY = 'docelucro_email_delivery_config';
+
+export function getEmailConfig(): EmailDeliveryConfig {
+  try {
+    const saved = localStorage.getItem(EMAIL_CONFIG_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+
+  return {
+    provider: (import.meta.env.VITE_EMAIL_PROVIDER as any) || 'none',
+    emailjsServiceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || '',
+    emailjsTemplateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
+    emailjsPublicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '',
+    brevoApiKey: import.meta.env.VITE_BREVO_API_KEY || '',
+    resendApiKey: import.meta.env.VITE_RESEND_API_KEY || '',
+    webhookUrl: import.meta.env.VITE_EMAIL_API_URL || ''
+  };
+}
+
+export function saveEmailConfig(config: EmailDeliveryConfig) {
+  localStorage.setItem(EMAIL_CONFIG_KEY, JSON.stringify(config));
+}
+
 /**
- * Envia o e-mail real com o código de ativação.
- * 1. Tenta envio via endpoint moderno de API (se configurado, ex: EmailJS, Resend ou webhook)
- * 2. Em ambiente web client-side, armazena no histórico seguro do usuário
+ * Envia o e-mail real com o código de ativação usando o provedor configurado.
  */
 export async function sendActivationEmail(params: SendActivationEmailParams): Promise<{ success: boolean; message: string }> {
-  try {
-    const htmlContent = generateActivationEmailHtml(params);
+  const config = getEmailConfig();
+  const htmlContent = generateActivationEmailHtml(params);
 
-    // Se houver uma chave de envio configurada no ambiente (ex: VITE_EMAIL_API_URL ou Resend)
-    const emailApiUrl = import.meta.env.VITE_EMAIL_API_URL;
-    if (emailApiUrl) {
-      await fetch(emailApiUrl, {
+  try {
+    // 1. Envio via Brevo (Sendinblue) API
+    if (config.brevoApiKey) {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': config.brevoApiKey,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'DoceLucro Confeitaria', email: 'atendimento@docelucro.com' },
+          to: [{ email: params.email, name: params.name }],
+          subject: `🧁 Seu código de ativação do DoceLucro: ${params.activationCode}`,
+          htmlContent: htmlContent
+        })
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || 'Falha ao enviar via Brevo');
+      }
+      return logSentEmail(params, 'Brevo API');
+    }
+
+    // 2. Envio via EmailJS REST API
+    if (config.emailjsServiceId && config.emailjsTemplateId && config.emailjsPublicKey) {
+      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: params.email,
+          service_id: config.emailjsServiceId,
+          template_id: config.emailjsTemplateId,
+          user_id: config.emailjsPublicKey,
+          template_params: {
+            to_email: params.email,
+            to_name: params.name,
+            bakery_name: params.bakery,
+            code: params.activationCode,
+            html_content: htmlContent
+          }
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Falha ao enviar e-mail via EmailJS');
+      }
+      return logSentEmail(params, 'EmailJS');
+    }
+
+    // 3. Envio via Resend API
+    if (config.resendApiKey) {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'DoceLucro <onboarding@resend.dev>',
+          to: [params.email],
           subject: `🧁 Seu código de ativação do DoceLucro: ${params.activationCode}`,
           html: htmlContent
         })
       });
-      return { success: true, message: 'E-mail enviado com sucesso via servidor de e-mails!' };
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || 'Falha ao enviar via Resend');
+      }
+      return logSentEmail(params, 'Resend API');
     }
 
-    // Registra no histórico de e-mails enviados para auditoria e conferência
-    const history = JSON.parse(localStorage.getItem('docelucro_sent_emails_history') || '[]');
-    history.unshift({
-      to: params.email,
-      name: params.name,
-      bakery: params.bakery,
-      code: params.activationCode,
-      sentAt: new Date().toISOString()
-    });
-    localStorage.setItem('docelucro_sent_emails_history', JSON.stringify(history.slice(0, 10)));
+    // 4. Envio via Webhook genérico (Vercel API, Make, Zapier, Formspree)
+    const webhookUrl = config.webhookUrl || import.meta.env.VITE_EMAIL_API_URL;
+    if (webhookUrl) {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: params.email,
+          name: params.name,
+          bakery: params.bakery,
+          code: params.activationCode,
+          subject: `🧁 Seu código de ativação do DoceLucro: ${params.activationCode}`,
+          html: htmlContent
+        })
+      });
 
-    console.info(`💌 [DoceLucro Mailer] Código ${params.activationCode} enviado para ${params.email}`);
-    return { success: true, message: 'E-mail gerado e despachado com sucesso!' };
+      if (!res.ok) {
+        throw new Error('Falha ao enviar via Webhook');
+      }
+      return logSentEmail(params, 'Webhook URL');
+    }
+
+    // Fallback: Armazena localmente no histórico para auditoria
+    return logSentEmail(params, 'Cofre Local (Sem Provedor de E-mail Conectado)');
   } catch (err: any) {
     console.warn('Falha no despachante de e-mail:', err);
+    logSentEmail(params, `Falha de rede: ${err?.message || 'Erro'}`);
     return { success: false, message: err?.message || 'Falha ao despachar e-mail' };
   }
+}
+
+function logSentEmail(params: SendActivationEmailParams, providerInfo: string) {
+  const history = JSON.parse(localStorage.getItem('docelucro_sent_emails_history') || '[]');
+  history.unshift({
+    to: params.email,
+    name: params.name,
+    bakery: params.bakery,
+    code: params.activationCode,
+    provider: providerInfo,
+    sentAt: new Date().toISOString()
+  });
+  localStorage.setItem('docelucro_sent_emails_history', JSON.stringify(history.slice(0, 15)));
+
+  console.info(`💌 [DoceLucro Mailer] Código ${params.activationCode} despachado para ${params.email} via ${providerInfo}`);
+  return { success: true, message: `Código despachado com sucesso via ${providerInfo}!` };
 }

@@ -68,10 +68,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           throw new Error(passwordRules.message || 'A senha precisa seguir todos os critérios de segurança.');
         }
         const res = await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Ateliê Doce');
-        if (res.devCode) {
-          setDevCodeDisplay(res.devCode);
-          setActivationCodeInput(res.devCode);
-        }
+        setDevCodeDisplay(null);
+        setActivationCodeInput(''); // Deixar vazio para que o usuário precise digitar o código enviado
         setMode('activate');
       } else if (mode === 'activate') {
         await verifyActivationCode(activationCodeInput);
@@ -88,9 +86,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     try {
       setLoading(true);
       setError(null);
-      const newCode = await resendActivationCode();
-      setDevCodeDisplay(newCode);
-      setActivationCodeInput(newCode);
+      await resendActivationCode();
+      setDevCodeDisplay(null);
+      setActivationCodeInput(''); // Mantém vazio para exigir digitação
       setResendSuccess(true);
       setTimeout(() => setResendSuccess(false), 4000);
     } catch (err: any) {
