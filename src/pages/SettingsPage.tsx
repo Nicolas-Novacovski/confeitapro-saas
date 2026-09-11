@@ -393,19 +393,152 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
                   <div style={{ textAlign: 'center', margin: '1rem 0' }}>
                     <span style={{
                       display: 'inline-block',
-                      background: 'linear-gradient(135deg, #E88B9A 0%, #D46A7B 100%)',
+                      background: 'linear-gradient(135deg, #FF6F61, #E05345)',
                       color: '#FFFFFF',
-                      padding: '0.65rem 1.5rem',
+                      padding: '0.65rem 1.4rem',
                       borderRadius: '8px',
                       fontWeight: 700,
                       textDecoration: 'none'
                     }}>
-                      🧁 Ativar Meu Ateliê no DoceLucro (%LINK%)
+                      Confirmar E-mail & Ativar Ateliê ➔
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.725rem', color: '#888' }}>
-                    Se você não solicitou este cadastro, pode ignorar esta mensagem com segurança.
+                  <p style={{ fontSize: '0.72rem', color: '#8C827A', marginTop: '0.5rem' }}>
+                    Se não foi você quem solicitou este cadastro no DoceLucro, por favor desconsidere este e-mail.
                   </p>
+                </div>
+              </div>
+
+              {/* Gerenciamento de Usuários e E-mails Cadastrados (Exclusivo Administrador) */}
+              <div style={{ background: 'var(--bg-subtle)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>👥</span>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                      Usuários & E-mails Cadastrados no DoceLucro
+                    </strong>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--primary-dark)', background: 'var(--primary-50)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                    Exclusivo Administrador
+                  </span>
+                </div>
+
+                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.4 }}>
+                  Aqui você visualiza todas as contas registradas no sistema, status de ativação e histórico dos códigos despachados:
+                </p>
+
+                {/* Tabela de Contas Registradas */}
+                <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', overflow: 'hidden', marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.6rem 0.85rem', background: 'var(--bg-canvas)', borderBottom: '1px solid var(--border-light)', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                    Cofre de Contas do Sistema
+                  </div>
+                  {(() => {
+                    try {
+                      const vault = JSON.parse(localStorage.getItem('docelucro_secure_users_vault') || '{}');
+                      const keys = Object.keys(vault);
+                      if (keys.length === 0) {
+                        return (
+                          <div style={{ padding: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                            Nenhum usuário cadastrado localmente no momento.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)' }}>
+                                <th style={{ padding: '0.5rem 0.85rem' }}>E-mail</th>
+                                <th style={{ padding: '0.5rem 0.85rem' }}>Nome / Ateliê</th>
+                                <th style={{ padding: '0.5rem 0.85rem' }}>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {keys.map((emailKey) => {
+                                const u = vault[emailKey];
+                                return (
+                                  <tr key={emailKey} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                    <td style={{ padding: '0.6rem 0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                                      {u.email}
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.85rem', color: 'var(--text-body)' }}>
+                                      {u.name} • <span style={{ color: 'var(--text-muted)' }}>{u.bakery}</span>
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.85rem' }}>
+                                      <span style={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: 'var(--radius-full)',
+                                        background: u.isVerified ? 'var(--sage-50)' : 'var(--amber-50)',
+                                        color: u.isVerified ? 'var(--sage-700)' : 'var(--amber-700)',
+                                        border: `1px solid ${u.isVerified ? 'var(--sage-300)' : 'var(--amber-300)'}`
+                                      }}>
+                                        {u.isVerified ? '✓ Ativado' : '⏳ Pendente Código'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })()}
+                </div>
+
+                {/* Histórico de E-mails / Códigos Enviados */}
+                <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', overflow: 'hidden' }}>
+                  <div style={{ padding: '0.6rem 0.85rem', background: 'var(--bg-canvas)', borderBottom: '1px solid var(--border-light)', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                    Histórico de Códigos Enviados por E-mail
+                  </div>
+                  {(() => {
+                    try {
+                      const logs = JSON.parse(localStorage.getItem('docelucro_sent_emails_history') || '[]');
+                      if (logs.length === 0) {
+                        return (
+                          <div style={{ padding: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                            Nenhum envio recente registrado.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.775rem', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)' }}>
+                                <th style={{ padding: '0.5rem 0.85rem' }}>Destinatário</th>
+                                <th style={{ padding: '0.5rem 0.85rem' }}>Código Gerado</th>
+                                <th style={{ padding: '0.5rem 0.85rem' }}>Horário</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {logs.map((log: any, idx: number) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                  <td style={{ padding: '0.5rem 0.85rem', color: 'var(--text-main)' }}>
+                                    <strong>{log.to}</strong> ({log.bakery})
+                                  </td>
+                                  <td style={{ padding: '0.5rem 0.85rem' }}>
+                                    <span style={{ fontFamily: 'monospace', fontWeight: 800, background: 'var(--lavender-50)', padding: '0.15rem 0.45rem', borderRadius: '4px', color: 'var(--lavender-700)' }}>
+                                      {log.code}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.5rem 0.85rem', color: 'var(--text-muted)' }}>
+                                    {new Date(log.sentAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })()}
                 </div>
               </div>
             </div>
