@@ -81,25 +81,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const renderNavContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '1rem' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-        {/* Topo no Mobile: Logo DoceLucro e Botão Fechar */}
-        {onCloseMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0.5rem 0.75rem', borderBottom: '1px solid var(--border-light)', marginBottom: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <img src={BRANDING.logoUrl} alt={BRANDING.name} className="brand-logo-img" style={{ width: '32px', height: '32px' }} />
-              <span className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+        {/* Topo da Sidebar: Logo Oficial DoceLucro */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.25rem 0.5rem 0.85rem',
+          borderBottom: '1px solid var(--border-light)',
+          marginBottom: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <img 
+              src={BRANDING.logoUrl} 
+              alt={BRANDING.name} 
+              className="brand-logo-img" 
+              style={{ width: '36px', height: '36px' }} 
+            />
+            <div>
+              <div className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1.1 }}>
                 {BRANDING.prefix}<span style={{ color: 'var(--primary)' }}>{BRANDING.suffix}</span>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                Gestão & Lucratividade
               </span>
             </div>
+          </div>
+          {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm mobile-only"
               style={{ padding: '0.35rem' }}
               title="Fechar Menu"
             >
               <X size={20} />
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         <p style={{
           fontSize: '0.725rem',
