@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 
 interface WhatsAppSupportButtonProps {
@@ -10,7 +10,16 @@ export const WhatsAppSupportButton: React.FC<WhatsAppSupportButtonProps> = ({
   phoneNumber,
   defaultMessage = 'Olá! Gostaria de tirar uma dúvida sobre o DoceLucro / Confeitaria Pro.'
 }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(true);
+
+  // Desaparece automaticamente após 10 segundos
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTooltip(false);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Obtém telefone configurado no localStorage ou variável de ambiente
   const savedPhone = localStorage.getItem('docelucro_support_whatsapp');
@@ -36,28 +45,49 @@ export const WhatsAppSupportButton: React.FC<WhatsAppSupportButtonProps> = ({
       }}
       className="whatsapp-float-container"
     >
-      {/* Tooltip convidativo */}
-      <div
-        style={{
-          background: '#FFFFFF',
-          color: 'var(--text-main)',
-          padding: '0.55rem 0.85rem',
-          borderRadius: '12px',
-          boxShadow: 'var(--shadow-md)',
-          border: '1px solid var(--border-light)',
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          cursor: 'pointer',
-          animation: 'fadeIn 0.3s ease-in-out'
-        }}
-        onClick={handleClick}
-      >
-        <span>Dúvidas? Fale com a gente!</span>
-        <span style={{ fontSize: '1rem' }}>💬</span>
-      </div>
+      {/* Tooltip convidativo que desaparece após 10 segundos */}
+      {showTooltip && (
+        <div
+          style={{
+            background: '#FFFFFF',
+            color: 'var(--text-main)',
+            padding: '0.55rem 0.85rem',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--border-light)',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: 'pointer',
+            animation: 'fadeIn 0.35s ease-out'
+          }}
+          onClick={handleClick}
+        >
+          <span>Dúvidas? Fale com a gente!</span>
+          <span style={{ fontSize: '1rem' }}>💬</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTooltip(false);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              padding: '0 0 0 2px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="Fechar aviso"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       {/* Botão Oficial Verde WhatsApp com Efeito Glow */}
       <button

@@ -18,17 +18,35 @@ export const LegalTermsModal: React.FC<LegalTermsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1100 }}>
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      style={{
+        zIndex: 1100,
+        padding: '1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(30, 24, 25, 0.45)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)'
+      }}
+    >
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: '680px',
-          maxHeight: '85vh',
+          width: '100%',
+          maxHeight: '86vh',
           display: 'flex',
           flexDirection: 'column',
-          padding: '1.75rem',
-          borderRadius: 'var(--radius-xl)'
+          padding: '2rem 1.75rem',
+          borderRadius: 'var(--radius-xl)',
+          margin: 'auto',
+          boxShadow: 'var(--shadow-lg)'
         }}
       >
         {/* Cabeçalho */}
