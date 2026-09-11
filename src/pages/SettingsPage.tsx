@@ -12,7 +12,8 @@ import {
   Check, 
   User, 
   ExternalLink,
-  Link2
+  Link2,
+  Trash2
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -52,6 +53,47 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => 
     saveStripeLinks(stripeLinks);
     setStripeSavedSuccess(true);
     setTimeout(() => setStripeSavedSuccess(false), 3000);
+  };
+
+  const [vaultRefresh, setVaultRefresh] = useState(0);
+
+  const handleDeleteAccount = (emailToDelete: string) => {
+    if (emailToDelete.toLowerCase() === 'nicolas.vendrami@gmail.com') {
+      alert('Atenção: A conta principal do administrador não pode ser excluída por segurança.');
+      return;
+    }
+    if (window.confirm(`Deseja realmente excluir a conta [${emailToDelete}]? Você poderá se cadastrar novamente com ela para testar o envio de código.`)) {
+      try {
+        const vault = JSON.parse(localStorage.getItem('docelucro_secure_users_vault') || '{}');
+        delete vault[emailToDelete.toLowerCase().trim()];
+        localStorage.setItem('docelucro_secure_users_vault', JSON.stringify(vault));
+        
+        // Remove ativação pendente do e-mail se houver
+        localStorage.removeItem(`docelucro_activation_${emailToDelete.toLowerCase().trim()}`);
+        
+        setVaultRefresh((prev) => prev + 1);
+        alert(`Conta [${emailToDelete}] excluída com sucesso! Agora você já pode testar o cadastro novamente.`);
+      } catch (err) {
+        alert('Erro ao excluir conta.');
+      }
+    }
+  };
+
+  const handleClearAllTestAccounts = () => {
+    if (window.confirm('Deseja excluir TODAS as contas de teste cadastradas (mantendo apenas o administrador)?')) {
+      try {
+        const vault = JSON.parse(localStorage.getItem('docelucro_secure_users_vault') || '{}');
+        const newVault: any = {};
+        if (vault['nicolas.vendrami@gmail.com']) {
+          newVault['nicolas.vendrami@gmail.com'] = vault['nicolas.vendrami@gmail.com'];
+        }
+        localStorage.setItem('docelucro_secure_users_vault', JSON.stringify(newVault));
+        setVaultRefresh((prev) => prev + 1);
+        alert('Todas as contas de teste foram limpas com sucesso! Pode realizar novos cadastros.');
+      } catch {
+        alert('Erro ao limpar contas.');
+      }
+    }
   };
 
   const envSample = `# Arquivo .env para o DoceLucro SaaS
@@ -429,33 +471,60 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
 
                 {/* Tabela de Contas Registradas */}
                 <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', overflow: 'hidden', marginBottom: '1rem' }}>
-                  <div style={{ padding: '0.6rem 0.85rem', background: 'var(--bg-canvas)', borderBottom: '1px solid var(--border-light)', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
-                    Cofre de Contas do Sistema
+                  <div style={{ padding: '0.6rem 0.85rem', background: 'var(--bg-canvas)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                      Cofre de Contas do Sistema
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleClearAllTestAccounts}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #FECDD3',
+                        color: '#E11D48',
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: '6px',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}
+                      title="Excluir todas as contas de teste mantendo apenas o administrador"
+                    >
+                      <Trash2 size={11} />
+                      <span>Limpar Contas de Teste</span>
+                    </button>
                   </div>
                   {(() => {
+                    // re-evaluate when vaultRefresh updates
+                    void vaultRefresh;
                     try {
                       const vault = JSON.parse(localStorage.getItem('docelucro_secure_users_vault') || '{}');
                       const keys = Object.keys(vault);
                       if (keys.length === 0) {
                         return (
                           <div style={{ padding: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                            Nenhum usuário cadastrado localmente no momento.
+                            Nenhum usuário cadastrado no cofre no momento.
                           </div>
                         );
                       }
                       return (
-                        <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                        <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
                             <thead>
                               <tr style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)' }}>
                                 <th style={{ padding: '0.5rem 0.85rem' }}>E-mail</th>
                                 <th style={{ padding: '0.5rem 0.85rem' }}>Nome / Ateliê</th>
                                 <th style={{ padding: '0.5rem 0.85rem' }}>Status</th>
+                                <th style={{ padding: '0.5rem 0.85rem', textAlign: 'right' }}>Ações</th>
                               </tr>
                             </thead>
                             <tbody>
                               {keys.map((emailKey) => {
                                 const u = vault[emailKey];
+                                const isSuperAdmin = emailKey.toLowerCase() === 'nicolas.vendrami@gmail.com';
                                 return (
                                   <tr key={emailKey} style={{ borderBottom: '1px solid var(--border-light)' }}>
                                     <td style={{ padding: '0.6rem 0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
@@ -476,6 +545,35 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
                                       }}>
                                         {u.isVerified ? '✓ Ativado' : '⏳ Pendente Código'}
                                       </span>
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right' }}>
+                                      {!isSuperAdmin ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteAccount(u.email)}
+                                          title={`Excluir conta ${u.email} para liberar novo cadastro`}
+                                          style={{
+                                            background: '#FFF1F2',
+                                            border: '1px solid #FECDD3',
+                                            color: '#E11D48',
+                                            padding: '0.2rem 0.55rem',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.3rem'
+                                          }}
+                                        >
+                                          <Trash2 size={12} />
+                                          <span>Excluir</span>
+                                        </button>
+                                      ) : (
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--lavender-700)', fontWeight: 600 }}>
+                                          Admin Master
+                                        </span>
+                                      )}
                                     </td>
                                   </tr>
                                 );
