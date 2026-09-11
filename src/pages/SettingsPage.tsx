@@ -20,7 +20,7 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => {
-  const { user, updateProfile, isPro, cancelSubscription } = useAuth();
+  const { user, updateProfile, isPro, cancelSubscription, isAdmin } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bakeryName, setBakeryName] = useState(user?.bakeryName || '');
@@ -226,147 +226,152 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
           </div>
         </div>
 
-        {/* Configuração dos Links Diretos do Stripe Checkout */}
-        <form onSubmit={handleSaveStripeLinks} style={{
-          background: 'var(--bg-subtle)',
-          padding: '1.25rem',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <Link2 size={18} color="var(--lavender-500)" />
-              <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                Links Diretos de Checkout do Stripe (Payment Links)
-              </strong>
+        {/* ÁREA EXCLUSIVA DE ADMINISTRADOR (nicolas.vendrami@gmail.com): Chaveamento de APIs, Stripe & .env */}
+        {isAdmin && (
+          <>
+            {/* Configuração dos Links Diretos do Stripe Checkout */}
+            <form onSubmit={handleSaveStripeLinks} style={{
+              background: 'var(--bg-subtle)',
+              padding: '1.25rem',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Link2 size={18} color="var(--lavender-500)" />
+                  <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                    Links Diretos de Checkout do Stripe (Exclusivo Administrador)
+                  </strong>
+                </div>
+                {stripeSavedSuccess && (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--sage-700)', fontWeight: 600 }}>
+                    ✓ Links salvos com sucesso!
+                  </span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                  Link de Checkout Plano Confeiteira Pro (R$ 29,90/mês)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://buy.stripe.com/..."
+                    value={stripeLinks.pro}
+                    onChange={(e) => setStripeLinks({ ...stripeLinks, pro: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => window.open(stripeLinks.pro, '_blank')}
+                    className="btn btn-secondary btn-sm"
+                    title="Testar link no Stripe"
+                  >
+                    <ExternalLink size={15} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                  Link de Checkout Plano Ateliê Master (R$ 49,90/mês)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://buy.stripe.com/..."
+                    value={stripeLinks.master}
+                    onChange={(e) => setStripeLinks({ ...stripeLinks, master: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => window.open(stripeLinks.master, '_blank')}
+                    className="btn btn-secondary btn-sm"
+                    title="Testar link no Stripe"
+                  >
+                    <ExternalLink size={15} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className="btn btn-secondary btn-sm">
+                  <Save size={14} />
+                  <span>Salvar Links do Stripe</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Status das Integrações Técnicas */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Database size={18} color="var(--sage-700)" />
+                <span>Status das Integrações (Exclusivo Administrador)</span>
+              </h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                {/* Firebase */}
+                <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: isFirebaseConfigured ? 'var(--sage-50)' : 'var(--amber-50)', border: `1px solid ${isFirebaseConfigured ? 'var(--sage-300)' : 'var(--amber-300)'}` }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isFirebaseConfigured ? 'var(--sage-700)' : 'var(--amber-700)' }}>
+                    FIREBASE
+                  </span>
+                  <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
+                    {isFirebaseConfigured ? '🔥 Conectado em Nuvem' : '💾 Modo Local / Demo'}
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', marginTop: '4px' }}>
+                    {isFirebaseConfigured ? 'Auth Google & Firestore ativos' : 'Persistência segura em LocalStorage'}
+                  </p>
+                </div>
+
+                {/* Stripe */}
+                <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: 'var(--lavender-50)', border: '1px solid var(--lavender-300)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lavender-700)' }}>
+                    STRIPE
+                  </span>
+                  <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
+                    💳 Checkout Configurado
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', marginTop: '4px' }}>
+                    Página de pagamento e simulação ativa
+                  </p>
+                </div>
+
+                {/* Gemini IA */}
+                <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: 'var(--primary-50)', border: '1px solid var(--primary-200)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-dark)' }}>
+                    CHEF IA
+                  </span>
+                  <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
+                    ✨ Motor Ativo
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', marginTop: '4px' }}>
+                    Diagnóstico de custos e copies de confeitaria
+                  </p>
+                </div>
+              </div>
+
+              {/* Bloco de ajuda para .env */}
+              <div style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    Exemplo de variáveis para produção (.env)
+                  </span>
+                  <button onClick={handleCopyEnv} className="btn btn-secondary btn-sm" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
+                    {copiedEnv ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedEnv ? 'Copiado!' : 'Copiar .env'}</span>
+                  </button>
+                </div>
+                <pre style={{ fontSize: '0.75rem', color: 'var(--text-body)', overflowX: 'auto', background: '#FFFFFF', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                  {envSample}
+                </pre>
+              </div>
             </div>
-            {stripeSavedSuccess && (
-              <span style={{ fontSize: '0.8rem', color: 'var(--sage-700)', fontWeight: 600 }}>
-                ✓ Links salvos com sucesso!
-              </span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" style={{ fontSize: '0.8rem' }}>
-              Link de Checkout Plano Confeiteira Pro (R$ 29,90/mês)
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="https://buy.stripe.com/..."
-                value={stripeLinks.pro}
-                onChange={(e) => setStripeLinks({ ...stripeLinks, pro: e.target.value })}
-              />
-              <button
-                type="button"
-                onClick={() => window.open(stripeLinks.pro, '_blank')}
-                className="btn btn-secondary btn-sm"
-                title="Testar link no Stripe"
-              >
-                <ExternalLink size={15} />
-              </button>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" style={{ fontSize: '0.8rem' }}>
-              Link de Checkout Plano Ateliê Master (R$ 49,90/mês)
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="https://buy.stripe.com/..."
-                value={stripeLinks.master}
-                onChange={(e) => setStripeLinks({ ...stripeLinks, master: e.target.value })}
-              />
-              <button
-                type="button"
-                onClick={() => window.open(stripeLinks.master, '_blank')}
-                className="btn btn-secondary btn-sm"
-                title="Testar link no Stripe"
-              >
-                <ExternalLink size={15} />
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-secondary btn-sm">
-              <Save size={14} />
-              <span>Salvar Links do Stripe</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Status das Integrações Técnicas */}
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Database size={18} color="var(--sage-700)" />
-          <span>Status das Integrações (Firebase, Stripe & Gemini IA)</span>
-        </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-          {/* Firebase */}
-          <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: isFirebaseConfigured ? 'var(--sage-50)' : 'var(--amber-50)', border: `1px solid ${isFirebaseConfigured ? 'var(--sage-300)' : 'var(--amber-300)'}` }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isFirebaseConfigured ? 'var(--sage-700)' : 'var(--amber-700)' }}>
-              FIREBASE
-            </span>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
-              {isFirebaseConfigured ? '🔥 Conectado em Nuvem' : '💾 Modo Local / Demo'}
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', marginTop: '4px' }}>
-              {isFirebaseConfigured ? 'Auth Google & Firestore ativos' : 'Persistência segura em LocalStorage'}
-            </p>
-          </div>
-
-          {/* Stripe */}
-          <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: 'var(--lavender-50)', border: '1px solid var(--lavender-300)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lavender-700)' }}>
-              STRIPE
-            </span>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
-              💳 Checkout Configurado
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', marginTop: '4px' }}>
-              Página de pagamento e simulação ativa
-            </p>
-          </div>
-
-          {/* Gemini IA */}
-          <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: 'var(--primary-50)', border: '1px solid var(--primary-200)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-dark)' }}>
-              CHEF IA
-            </span>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '4px' }}>
-              ✨ Motor Ativo
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', marginTop: '4px' }}>
-              Diagnóstico de custos e copies de confeitaria
-            </p>
-          </div>
-        </div>
-
-        {/* Bloco de ajuda para .env */}
-        <div style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Exemplo de variáveis para produção (.env)
-            </span>
-            <button onClick={handleCopyEnv} className="btn btn-secondary btn-sm" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
-              {copiedEnv ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedEnv ? 'Copiado!' : 'Copiar .env'}</span>
-            </button>
-          </div>
-          <pre style={{ fontSize: '0.75rem', color: 'var(--text-body)', overflowX: 'auto', background: '#FFFFFF', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
-            {envSample}
-          </pre>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

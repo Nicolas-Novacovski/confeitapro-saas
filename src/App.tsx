@@ -45,7 +45,7 @@ const MainApp: React.FC = () => {
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   const { getFinancials } = useData();
-  const { user, upgradePlan } = useAuth();
+  const { user, upgradePlan, isAdmin } = useAuth();
 
   // Detecta retorno de sucesso do Stripe Checkout e ativa o plano instantaneamente
   useEffect(() => {
@@ -226,7 +226,7 @@ const MainApp: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'security' && (
+          {activeTab === 'security' && isAdmin && (
             <div style={{ maxWidth: '660px', margin: '0 auto' }}>
               <SecurityPanelModal onClose={() => setActiveTab('dashboard')} />
             </div>

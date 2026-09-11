@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenLoginPage,
   onOpenActiveSession
 }) => {
-  const { isPro, user, logout } = useAuth();
+  const { isPro, user, logout, isAdmin } = useAuth();
 
   const menuItems = [
     { id: 'dashboard' as NavTab, label: 'Visão Geral', icon: LayoutDashboard },
@@ -62,7 +62,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: '#EF4444'
     },
     { id: 'labor-calc' as NavTab, label: 'Calcular Minha Hora', icon: Clock },
-    { id: 'security' as NavTab, label: 'Blindagem & Segurança', icon: ShieldCheck },
+    ...(isAdmin ? [{ 
+      id: 'security' as NavTab, 
+      label: 'Blindagem & Segurança', 
+      icon: ShieldCheck,
+      badge: 'DEV',
+      badgeColor: '#6366F1'
+    }] : []),
     { id: 'settings' as NavTab, label: 'Configurações', icon: Settings },
   ];
 

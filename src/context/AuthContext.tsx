@@ -11,11 +11,14 @@ import {
 } from 'firebase/auth';
 import confetti from 'canvas-confetti';
 
+export const ADMIN_EMAIL = 'nicolas.vendrami@gmail.com';
+
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   isPro: boolean;
   isMaster: boolean;
+  isAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
   register: (email: string, pass: string, name: string, bakery: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -76,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isPro = user?.plan === 'pro' || user?.plan === 'master';
   const isMaster = user?.plan === 'master';
+  const isAdmin = Boolean(user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase());
 
   const login = async (email: string, pass: string) => {
     setLoading(true);
@@ -265,6 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         isPro,
         isMaster,
+        isAdmin,
         login,
         register,
         loginWithGoogle,
