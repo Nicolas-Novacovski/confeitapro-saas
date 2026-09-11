@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import confetti from 'canvas-confetti';
 import { hashPasswordSecurely, validatePasswordPolicy } from '../utils/security';
+import { sendActivationEmail } from '../utils/emailService';
 
 export const ADMIN_EMAIL = 'nicolas.vendrami@gmail.com';
 
@@ -200,15 +201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (isFirebaseConfigured && auth) {
         try {
-          const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
-          // Opcional: envia link secundário por e-mail sem bloquear
-          try {
-            await sendEmailVerification(cred.user);
-          } catch {}
+          await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
           // Desconecta a sessão automática do Firebase para exigir ativação por código
           await signOut(auth);
         } catch (e: any) {
-          // Se o e-mail já existir no Firebase, informa com clareza
           if (e?.code === 'auth/email-already-in-use') {
             throw new Error('Este e-mail já está cadastrado. Faça login com sua senha.');
           }
@@ -237,6 +233,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setPendingActivation(pendingData);
+
+      // Dispara o e-mail oficial com o código de 6 dígitos formatado para a confeiteira
+      await sendActivationEmail({
+        email: normalizedEmail,
+        name,
+        bakery,
+        activationCode
+      });
+
       return { codeSent: true, devCode: activationCode };
     } finally {
       setLoading(false);
@@ -299,6 +304,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: Date.now()
     };
     setPendingActivation(updated);
+
+    // Reenvia o e-mail formatado
+    await sendActivationEmail({
+      email: updated.email,
+      name: updated.name,
+      bakery: updated.bakery,
+      activationCode: newCode
+    });
+
     return newCode;
   };
 

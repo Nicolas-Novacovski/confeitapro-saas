@@ -353,35 +353,47 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           {mode === 'activate' ? (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{
-                background: 'var(--lavender-50)',
+                background: 'linear-gradient(135deg, #FFF3F5 0%, #FAF5FD 100%)',
                 border: '1px solid var(--lavender-300)',
-                padding: '1.25rem',
+                padding: '1.5rem',
                 borderRadius: 'var(--radius-lg)',
                 textAlign: 'center'
               }}>
-                <MailCheck size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
-                <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
-                  Código de Ativação
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: 'var(--radius-full)',
+                  background: '#FFFFFF',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1rem'
+                }}>
+                  <MailCheck size={28} color="var(--primary)" />
+                </div>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
+                  Código Enviado para seu E-mail! 💌
                 </h4>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Um código seguro de 6 dígitos foi gerado para ativar o ateliê de <strong>{email || pendingActivation?.email}</strong>.
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-body)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
+                  Acabamos de despachar um e-mail oficial do DoceLucro para:
                 </p>
-
-                {devCodeDisplay && (
-                  <div style={{
-                    marginTop: '0.85rem',
-                    padding: '0.5rem 0.75rem',
-                    background: '#FFFFFF',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1.5px dashed var(--primary)',
-                    display: 'inline-block'
-                  }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Código gerado com sucesso:</span>
-                    <strong style={{ fontSize: '1.35rem', letterSpacing: '0.3em', color: 'var(--primary-dark)', fontFamily: 'monospace' }}>
-                      {devCodeDisplay}
-                    </strong>
-                  </div>
-                )}
+                <div style={{
+                  display: 'inline-block',
+                  background: '#FFFFFF',
+                  border: '1px solid var(--border-light)',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  color: 'var(--primary-dark)',
+                  marginBottom: '0.75rem'
+                }}>
+                  {email || pendingActivation?.email}
+                </div>
+                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                  Abra sua caixa de entrada (ou pasta de spam/lixo eletrônico) e digite o código de 6 dígitos recebido.
+                </p>
               </div>
 
               <div className="form-group">
