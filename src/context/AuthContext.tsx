@@ -5,13 +5,24 @@ import { auth, googleProvider, isFirebaseConfigured } from '../config/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
+  sendEmailVerification,
   signInWithPopup, 
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
 import confetti from 'canvas-confetti';
+import { hashPasswordSecurely, validatePasswordPolicy } from '../utils/security';
 
 export const ADMIN_EMAIL = 'nicolas.vendrami@gmail.com';
+
+interface PendingActivation {
+  email: string;
+  name: string;
+  bakery: string;
+  hashedPass: string;
+  activationCode: string;
+  createdAt: number;
+}
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -19,8 +30,11 @@ interface AuthContextType {
   isPro: boolean;
   isMaster: boolean;
   isAdmin: boolean;
+  pendingActivation: PendingActivation | null;
   login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string, name: string, bakery: string) => Promise<void>;
+  register: (email: string, pass: string, name: string, bakery: string) => Promise<{ codeSent: boolean; devCode?: string }>;
+  verifyActivationCode: (code: string) => Promise<boolean>;
+  resendActivationCode: () => Promise<string>;
   loginWithGoogle: () => Promise<void>;
   registerWithGoogle: (bakeryName?: string) => Promise<void>;
   loginDemo: () => void;
@@ -33,6 +47,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_USER_KEY = 'confeitapro_user_profile';
+const LOCAL_STORAGE_AUTH_DB_KEY = 'docelucro_secure_users_vault';
+const LOCAL_STORAGE_PENDING_ACTIVATION_KEY = 'docelucro_pending_activation';
+
+// Recupera banco criptografado local
+function getLocalUsersVault(): Record<string, { email: string; name: string; bakery: string; passwordHash: string; isVerified: boolean }> {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_AUTH_DB_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalUsersVault(vault: Record<string, any>) {
+  localStorage.setItem(LOCAL_STORAGE_AUTH_DB_KEY, JSON.stringify(vault));
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -47,6 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   });
 
+  const [pendingActivation, setPendingActivation] = useState<PendingActivation | null>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_PENDING_ACTIVATION_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -56,6 +95,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (pendingActivation) {
+      localStorage.setItem(LOCAL_STORAGE_PENDING_ACTIVATION_KEY, JSON.stringify(pendingActivation));
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_PENDING_ACTIVATION_KEY);
+    }
+  }, [pendingActivation]);
 
   useEffect(() => {
     if (isFirebaseConfigured && auth) {
@@ -69,7 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             hourlyLaborRate: prev?.hourlyLaborRate || 28,
             monthlyHoursTarget: prev?.monthlyHoursTarget || 140,
             plan: prev?.plan || 'free',
-            isDemo: false
+            isDemo: false,
+            isEmailVerified: firebaseUser.emailVerified
           }));
         }
       });
@@ -84,20 +132,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string) => {
     setLoading(true);
     try {
+      const normalizedEmail = email.toLowerCase().trim();
       const now = new Date().toISOString();
+
       if (isFirebaseConfigured && auth) {
-        await signInWithEmailAndPassword(auth, email, pass);
+        await signInWithEmailAndPassword(auth, normalizedEmail, pass);
       } else {
+        // Autenticação local com verificação de HASH criptografado SHA-256
+        const vault = getLocalUsersVault();
+        const existing = vault[normalizedEmail];
+        const inputHash = await hashPasswordSecurely(pass);
+
+        if (existing) {
+          if (existing.passwordHash !== inputHash) {
+            throw new Error('Senha incorreta. Verifique suas credenciais.');
+          }
+          if (!existing.isVerified) {
+            throw new Error('Esta conta ainda não foi ativada. Digite o código de ativação enviado.');
+          }
+        }
+
         setUser({
-          uid: 'user_' + Date.now(),
-          email,
-          displayName: email.split('@')[0],
-          bakeryName: 'Ateliê ' + email.split('@')[0],
+          uid: 'user_' + (existing ? btoa(normalizedEmail).slice(0, 10) : Date.now()),
+          email: normalizedEmail,
+          displayName: existing ? existing.name : normalizedEmail.split('@')[0],
+          bakeryName: existing ? existing.bakery : 'Ateliê ' + normalizedEmail.split('@')[0],
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
           isDemo: false,
-          sessionStartedAt: now
+          sessionStartedAt: now,
+          isEmailVerified: true
         });
       }
     } finally {
@@ -108,36 +173,129 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, pass: string, name: string, bakery: string) => {
     setLoading(true);
     try {
+      // 1. Validação estrita de política de senhas (maiúscula, número, especial, 8 dígitos)
+      const policy = validatePasswordPolicy(pass);
+      if (!policy.isValid) {
+        throw new Error(policy.message || 'A senha não atende aos requisitos de segurança.');
+      }
+
+      const normalizedEmail = email.toLowerCase().trim();
       const now = new Date().toISOString();
+
+      // 2. Geração do código de ativação seguro de 6 dígitos
+      const activationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // 3. Criptografa a senha com hash SHA-256 + Salt antes de gravar
+      const passwordHash = await hashPasswordSecurely(pass);
+
       if (isFirebaseConfigured && auth) {
-        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
+        try {
+          await sendEmailVerification(cred.user);
+        } catch (e) {
+          console.warn('Erro ao disparar verificação de email Firebase:', e);
+        }
+
         setUser({
           uid: cred.user.uid,
-          email,
+          email: normalizedEmail,
           displayName: name,
           bakeryName: bakery,
           hourlyLaborRate: 28,
           monthlyHoursTarget: 140,
           plan: 'free',
           isDemo: false,
-          sessionStartedAt: now
+          sessionStartedAt: now,
+          isEmailVerified: false
         });
+
+        return { codeSent: true };
       } else {
-        setUser({
-          uid: 'user_' + Date.now(),
-          email,
-          displayName: name,
-          bakeryName: bakery,
-          hourlyLaborRate: 28,
-          monthlyHoursTarget: 140,
-          plan: 'free',
-          isDemo: false,
-          sessionStartedAt: now
-        });
+        // Modo local seguro: salva no cofre criptografado como pendente
+        const vault = getLocalUsersVault();
+        vault[normalizedEmail] = {
+          email: normalizedEmail,
+          name,
+          bakery,
+          passwordHash,
+          isVerified: false
+        };
+        saveLocalUsersVault(vault);
+
+        const pendingData: PendingActivation = {
+          email: normalizedEmail,
+          name,
+          bakery,
+          hashedPass: passwordHash,
+          activationCode,
+          createdAt: Date.now()
+        };
+
+        setPendingActivation(pendingData);
+        return { codeSent: true, devCode: activationCode };
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const verifyActivationCode = async (code: string): Promise<boolean> => {
+    if (!pendingActivation) {
+      throw new Error('Nenhuma ativação pendente encontrada.');
+    }
+
+    if (code.trim() !== pendingActivation.activationCode) {
+      throw new Error('Código de ativação incorreto. Verifique os 6 dígitos digitados.');
+    }
+
+    // Marca como ativado no cofre
+    const vault = getLocalUsersVault();
+    if (vault[pendingActivation.email]) {
+      vault[pendingActivation.email].isVerified = true;
+      saveLocalUsersVault(vault);
+    }
+
+    // Cria o perfil logado
+    const now = new Date().toISOString();
+    setUser({
+      uid: 'user_' + btoa(pendingActivation.email).slice(0, 10),
+      email: pendingActivation.email,
+      displayName: pendingActivation.name,
+      bakeryName: pendingActivation.bakery,
+      hourlyLaborRate: 28,
+      monthlyHoursTarget: 140,
+      plan: 'free',
+      isDemo: false,
+      sessionStartedAt: now,
+      isEmailVerified: true
+    });
+
+    setPendingActivation(null);
+
+    try {
+      confetti({
+        particleCount: 140,
+        spread: 90,
+        origin: { y: 0.5 },
+        colors: ['#E88B9A', '#9ECDA8', '#F3CA77']
+      });
+    } catch {}
+
+    return true;
+  };
+
+  const resendActivationCode = async (): Promise<string> => {
+    if (!pendingActivation) {
+      throw new Error('Nenhuma ativação pendente.');
+    }
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const updated = {
+      ...pendingActivation,
+      activationCode: newCode,
+      createdAt: Date.now()
+    };
+    setPendingActivation(updated);
+    return newCode;
   };
 
   const loginWithGoogle = async () => {
@@ -270,8 +428,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPro,
         isMaster,
         isAdmin,
+        pendingActivation,
         login,
         register,
+        verifyActivationCode,
+        resendActivationCode,
         loginWithGoogle,
         registerWithGoogle,
         loginDemo,

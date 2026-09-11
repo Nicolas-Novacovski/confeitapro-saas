@@ -94,6 +94,7 @@ export interface UserProfile {
   stripeCustomerId?: string;
   subscriptionExpiresAt?: string;
   sessionStartedAt?: string;
+  isEmailVerified?: boolean;
 }
 
 export interface AiChatMessage {

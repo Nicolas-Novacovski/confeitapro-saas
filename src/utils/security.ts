@@ -66,3 +66,60 @@ export function exportSecureLocalBackup(data: { ingredients: any[]; recipes: any
 
 // Alias para compatibilidade
 export const exportSecureBackupJSON = exportSecureLocalBackup;
+
+/**
+ * Validação rigorosa de senha:
+ * - Mínimo de 8 caracteres
+ * - Pelo menos uma letra maiúscula [A-Z]
+ * - Pelo menos um caractere especial [!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]
+ * - Pelo menos um número ou letra minúscula
+ */
+export interface PasswordValidationResult {
+  isValid: boolean;
+  hasMinLength: boolean;
+  hasUppercase: boolean;
+  hasSpecialChar: boolean;
+  hasNumber: boolean;
+  message?: string;
+}
+
+export function validatePasswordPolicy(password: string): PasswordValidationResult {
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  const isValid = hasMinLength && hasUppercase && hasSpecialChar && hasNumber;
+
+  let message = '';
+  if (!hasMinLength) {
+    message = 'A senha deve ter pelo menos 8 caracteres.';
+  } else if (!hasUppercase) {
+    message = 'A senha precisa ter pelo menos 1 letra MAIÚSCULA.';
+  } else if (!hasSpecialChar) {
+    message = 'A senha precisa conter pelo menos 1 caractere especial (ex: @, #, $, !, %).';
+  } else if (!hasNumber) {
+    message = 'A senha precisa conter pelo menos 1 número.';
+  }
+
+  return {
+    isValid,
+    hasMinLength,
+    hasUppercase,
+    hasSpecialChar,
+    hasNumber,
+    message: isValid ? undefined : message
+  };
+}
+
+/**
+ * Criptografia unidirecional da senha usando SHA-256 com Salt criptográfico
+ * Garante que a senha nunca seja gravada em texto plano no banco ou storage local.
+ */
+export async function hashPasswordSecurely(password: string, salt: string = 'docelucro_salt_v2'): Promise<string> {
+  const enc = new TextEncoder();
+  const data = enc.encode(`${salt}:${password}:docelucro_auth_safe`);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}

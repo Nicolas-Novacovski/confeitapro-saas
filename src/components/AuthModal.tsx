@@ -2,22 +2,38 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { isFirebaseConfigured } from '../config/firebase';
 import { FirebaseSetupModal } from './FirebaseSetupModal';
-import { X, LogIn, UserPlus, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, LogIn, UserPlus, Sparkles, CheckCircle2, AlertCircle, Check, X as XIcon, MailCheck, RefreshCw } from 'lucide-react';
+import { validatePasswordPolicy } from '../utils/security';
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
-  const { user, login, register, loginWithGoogle, registerWithGoogle, loginDemo, logout } = useAuth();
+  const { 
+    user, 
+    login, 
+    register, 
+    pendingActivation, 
+    verifyActivationCode, 
+    resendActivationCode, 
+    loginWithGoogle, 
+    registerWithGoogle, 
+    loginDemo, 
+    logout 
+  } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'activate'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [bakeryName, setBakeryName] = useState('');
+  const [activationCodeInput, setActivationCodeInput] = useState('');
+  const [devCodeDisplay, setDevCodeDisplay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const passwordRules = validatePasswordPolicy(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +43,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     try {
       if (mode === 'login') {
         await login(email, password);
-      } else {
-        await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Doce Ateliê');
+        onClose();
+      } else if (mode === 'register') {
+        if (!passwordRules.isValid) {
+          throw new Error(passwordRules.message || 'A senha precisa seguir os requisitos de segurança.');
+        }
+        const res = await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Doce Ateliê');
+        if (res.devCode) {
+          setDevCodeDisplay(res.devCode);
+          setActivationCodeInput(res.devCode);
+        }
+        setMode('activate');
+      } else if (mode === 'activate') {
+        await verifyActivationCode(activationCodeInput);
+        onClose();
       }
-      onClose();
     } catch (err: any) {
-      setError(err?.message || 'Falha ao autenticar. Verifique suas credenciais.');
+      setError(err?.message || 'Falha ao processar. Verifique os dados informados.');
     } finally {
       setLoading(false);
     }
@@ -205,6 +232,74 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
               </div>
             )}
 
+            {mode === 'activate' ? (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{
+                  background: 'var(--lavender-50)',
+                  border: '1px solid var(--lavender-300)',
+                  padding: '1.25rem',
+                  borderRadius: 'var(--radius-lg)',
+                  textAlign: 'center'
+                }}>
+                  <MailCheck size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+                    Código de Ativação
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    Um código seguro de 6 dígitos foi gerado para ativar o ateliê de <strong>{email || pendingActivation?.email}</strong>.
+                  </p>
+
+                  {devCodeDisplay && (
+                    <div style={{
+                      marginTop: '0.85rem',
+                      padding: '0.5rem 0.75rem',
+                      background: '#FFFFFF',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1.5px dashed var(--primary)',
+                      display: 'inline-block'
+                    }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Código gerado:</span>
+                      <strong style={{ fontSize: '1.35rem', letterSpacing: '0.3em', color: 'var(--primary-dark)', fontFamily: 'monospace' }}>
+                        {devCodeDisplay}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ textAlign: 'center', display: 'block' }}>
+                    Digite os 6 dígitos de ativação
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    className="form-input"
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '1.5rem',
+                      letterSpacing: '0.35em',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      padding: '0.85rem'
+                    }}
+                    placeholder="000000"
+                    value={activationCodeInput}
+                    onChange={(e) => setActivationCodeInput(e.target.value.replace(/\D/g, ''))}
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || activationCodeInput.length < 6}
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.85rem', fontWeight: 700 }}
+                >
+                  {loading ? 'Validando...' : 'Ativar Minha Conta & Entrar'}
+                </button>
+              </form>
+            ) : (
+              <>
             {/* BOTÃO GOOGLE DESTACADO */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <button
@@ -296,15 +391,50 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                 />
               </div>
 
+              {/* Checklist de requisitos de senha no cadastro */}
+              {mode === 'register' && password.length > 0 && (
+                <div style={{
+                  background: 'var(--bg-subtle)',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                  fontSize: '0.75rem'
+                }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.15rem' }}>
+                    Critérios de Segurança da Senha:
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: passwordRules.hasMinLength ? 'var(--sage-700)' : 'var(--text-muted)' }}>
+                    {passwordRules.hasMinLength ? <Check size={13} color="var(--sage-700)" /> : <XIcon size={13} color="#E11D48" />}
+                    <span>Pelo menos 8 caracteres</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: passwordRules.hasUppercase ? 'var(--sage-700)' : 'var(--text-muted)' }}>
+                    {passwordRules.hasUppercase ? <Check size={13} color="var(--sage-700)" /> : <XIcon size={13} color="#E11D48" />}
+                    <span>Pelo menos 1 letra MAIÚSCULA</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: passwordRules.hasSpecialChar ? 'var(--sage-700)' : 'var(--text-muted)' }}>
+                    {passwordRules.hasSpecialChar ? <Check size={13} color="var(--sage-700)" /> : <XIcon size={13} color="#E11D48" />}
+                    <span>Pelo menos 1 caractere especial (!@#$...)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: passwordRules.hasNumber ? 'var(--sage-700)' : 'var(--text-muted)' }}>
+                    {passwordRules.hasNumber ? <Check size={13} color="var(--sage-700)" /> : <XIcon size={13} color="#E11D48" />}
+                    <span>Pelo menos 1 número</span>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (mode === 'register' && !passwordRules.isValid)}
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: '0.5rem', padding: '0.85rem' }}
               >
-                {loading ? 'Processando...' : mode === 'login' ? 'Entrar no Sistema' : 'Concluir Cadastro Gratuito'}
+                {loading ? 'Processando...' : mode === 'login' ? 'Entrar no Sistema' : 'Cadastrar & Ativar por Código'}
               </button>
             </form>
+            </>
+            )}
 
             {/* Acesso Imediato Modo Demo */}
             <div style={{
