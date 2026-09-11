@@ -206,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await signOut(auth);
         } catch (e: any) {
           if (e?.code === 'auth/email-already-in-use') {
-            throw new Error('Este e-mail já está cadastrado. Faça login com sua senha.');
+            throw new Error('Este e-mail já está cadastrado no Firebase. Para testar o cadastro novamente: exclua-o no Firebase Console (Authentication > Users) ou use o truque do Gmail: seuemail+1@gmail.com (o código chega na mesma caixa postal!).');
           }
           console.warn('Registro Firebase fallback:', e);
         }
