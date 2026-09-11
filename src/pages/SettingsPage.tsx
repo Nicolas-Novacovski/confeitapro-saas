@@ -354,20 +354,59 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
                 </div>
               </div>
 
-              {/* Bloco de ajuda para .env */}
-              <div style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    Exemplo de variáveis para produção (.env)
+              {/* Template de E-mail Personalizado do DoceLucro para o Firebase / Envio */}
+              <div style={{ background: 'var(--bg-subtle)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>💌</span>
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                      Modelo do E-mail de Ativação do DoceLucro (Para Firebase Console)
+                    </strong>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--sage-700)', background: 'var(--sage-50)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    Personalizado com Marca
                   </span>
-                  <button onClick={handleCopyEnv} className="btn btn-secondary btn-sm" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
-                    {copiedEnv ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedEnv ? 'Copiado!' : 'Copiar .env'}</span>
-                  </button>
                 </div>
-                <pre style={{ fontSize: '0.75rem', color: 'var(--text-body)', overflowX: 'auto', background: '#FFFFFF', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
-                  {envSample}
-                </pre>
+                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                  Para o e-mail de confirmação chegar com o nome <strong>DoceLucro</strong> e mensagem bonita de boas-vindas para as confeiteiras, copie o modelo abaixo e cole no Firebase Console (<em>Authentication &gt; Templates &gt; Verificação de endereço de e-mail</em>).
+                </p>
+                <div style={{
+                  background: '#FFFFFF',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1rem',
+                  fontSize: '0.775rem',
+                  fontFamily: 'sans-serif',
+                  color: 'var(--text-main)',
+                  lineHeight: 1.6
+                }}>
+                  <div style={{ borderBottom: '1px solid #F1ECE6', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+                    <strong>Assunto:</strong> 🧁 Bem-vinda ao DoceLucro! Ative o seu Ateliê Lucrativo
+                  </div>
+                  <p style={{ marginBottom: '0.5rem' }}>Olá, confeiteira!</p>
+                  <p style={{ marginBottom: '0.5rem' }}>
+                    Parabéns por dar o primeiro passo para <strong>nunca mais pagar para trabalhar</strong>. O <strong>DoceLucro</strong> foi criado especialmente para valorizar o seu talento e colocar lucro real no seu bolso!
+                  </p>
+                  <p style={{ marginBottom: '0.75rem' }}>
+                    Para ativar seu ateliê e começar a precificar com precisão e usar nossa Chef IA, clique no botão seguro abaixo:
+                  </p>
+                  <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      background: 'linear-gradient(135deg, #E88B9A 0%, #D46A7B 100%)',
+                      color: '#FFFFFF',
+                      padding: '0.65rem 1.5rem',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      textDecoration: 'none'
+                    }}>
+                      🧁 Ativar Meu Ateliê no DoceLucro (%LINK%)
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.725rem', color: '#888' }}>
+                    Se você não solicitou este cadastro, pode ignorar esta mensagem com segurança.
+                  </p>
+                </div>
               </div>
             </div>
           </>

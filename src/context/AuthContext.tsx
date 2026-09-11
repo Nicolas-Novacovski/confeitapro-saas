@@ -108,6 +108,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isFirebaseConfigured && auth) {
       const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
         if (firebaseUser) {
+          // Se o usuário foi criado por email e ainda NÃO verificou, não loga no app
+          if (!firebaseUser.emailVerified && firebaseUser.providerData.some(p => p.providerId === 'password')) {
+            setUser(null);
+            return;
+          }
+
           setUser((prev) => ({
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',
@@ -136,7 +142,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const now = new Date().toISOString();
 
       if (isFirebaseConfigured && auth) {
-        await signInWithEmailAndPassword(auth, normalizedEmail, pass);
+        const cred = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
+        if (!cred.user.emailVerified) {
+          await signOut(auth);
+          throw new Error('Sua conta ainda não foi ativada. Verifique o link enviado ao seu e-mail ou digite seu código.');
+        }
       } else {
         // Autenticação local com verificação de HASH criptografado SHA-256
         const vault = getLocalUsersVault();
@@ -196,20 +206,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('Erro ao disparar verificação de email Firebase:', e);
         }
 
-        setUser({
-          uid: cred.user.uid,
-          email: normalizedEmail,
-          displayName: name,
-          bakeryName: bakery,
-          hourlyLaborRate: 28,
-          monthlyHoursTarget: 140,
-          plan: 'free',
-          isDemo: false,
-          sessionStartedAt: now,
-          isEmailVerified: false
-        });
+        // NÃO loga o usuário no sistema ainda!
+        // Desconecta a sessão automática do Firebase para exigir ativação
+        await signOut(auth);
 
-        return { codeSent: true };
+        const pendingData: PendingActivation = {
+          email: normalizedEmail,
+          name,
+          bakery,
+          hashedPass: passwordHash,
+          activationCode,
+          createdAt: Date.now()
+        };
+
+        setPendingActivation(pendingData);
+        return { codeSent: true, devCode: activationCode };
       } else {
         // Modo local seguro: salva no cofre criptografado como pendente
         const vault = getLocalUsersVault();
