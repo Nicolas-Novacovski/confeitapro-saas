@@ -7,14 +7,16 @@ import {
   Sparkles, 
   Clock, 
   Settings, 
-  Crown,
-  ChevronRight,
-  TrendingDown,
-  ShieldCheck,
+  Crown, 
+  ChevronRight, 
+  TrendingDown, 
+  ShieldCheck, 
   LogIn,
   LogOut,
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
+import { BRANDING } from '../config/branding';
 
 export type NavTab = 
   | 'dashboard' 
@@ -32,6 +34,8 @@ interface SidebarProps {
   onOpenPricing: () => void;
   onOpenLoginPage: () => void;
   onOpenActiveSession?: () => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -39,7 +43,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   onOpenPricing,
   onOpenLoginPage,
-  onOpenActiveSession
+  onOpenActiveSession,
+  isMobileOpen,
+  onCloseMobile
 }) => {
   const { isPro, user, logout, isAdmin } = useAuth();
 
@@ -72,23 +78,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings' as NavTab, label: 'Configurações', icon: Settings },
   ];
 
-  return (
-    <aside style={{
-      width: '260px',
-      height: '100vh',
-      position: 'sticky',
-      top: 0,
-      background: '#FFFFFF',
-      borderRight: '1px solid var(--border-light)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '1.25rem 1rem',
-      flexShrink: 0,
-      overflowY: 'auto',
-      zIndex: 30
-    }}>
+  const renderNavContent = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '1rem' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        {/* Topo no Mobile: Logo DoceLucro e Botão Fechar */}
+        {onCloseMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0.5rem 0.75rem', borderBottom: '1px solid var(--border-light)', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <img src={BRANDING.logoUrl} alt={BRANDING.name} className="brand-logo-img" style={{ width: '32px', height: '32px' }} />
+              <span className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+                {BRANDING.prefix}<span style={{ color: 'var(--primary)' }}>{BRANDING.suffix}</span>
+              </span>
+            </div>
+            <button
+              onClick={onCloseMobile}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.35rem' }}
+              title="Fechar Menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        )}
+
         <p style={{
           fontSize: '0.725rem',
           fontWeight: 800,
@@ -107,7 +119,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onSelectTab(item.id)}
+              onClick={() => {
+                onSelectTab(item.id);
+                if (onCloseMobile) onCloseMobile();
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -171,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.75rem' }}>
         {/* Banner de Upgrade para o Plano PRO se for Free */}
         {!isPro ? (
           <div style={{
@@ -186,7 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
               <Crown size={16} color="#8E7AC4" />
               <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#523A84' }}>
-                Plano Pro Confeitaria
+                Plano Pro DoceLucro
               </span>
             </div>
 
@@ -195,7 +210,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </p>
 
             <button
-              onClick={onOpenPricing}
+              onClick={() => {
+                onOpenPricing();
+                if (onCloseMobile) onCloseMobile();
+              }}
               className="btn btn-pro btn-sm"
               style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem' }}
             >
@@ -238,7 +256,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             gap: '0.65rem'
           }}>
             <div 
-              onClick={onOpenActiveSession}
+              onClick={() => {
+                if (onOpenActiveSession) onOpenActiveSession();
+                if (onCloseMobile) onCloseMobile();
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -299,7 +320,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {onOpenActiveSession && (
                 <button
                   type="button"
-                  onClick={onOpenActiveSession}
+                  onClick={() => {
+                    onOpenActiveSession();
+                    if (onCloseMobile) onCloseMobile();
+                  }}
                   className="btn btn-ghost btn-sm"
                   style={{ flex: 1, fontSize: '0.725rem', padding: '0.35rem 0.4rem', color: 'var(--text-body)' }}
                 >
@@ -312,16 +336,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={logout}
                 className="btn btn-ghost btn-sm"
                 style={{ flex: 1, fontSize: '0.725rem', padding: '0.35rem 0.4rem', color: '#E11D48' }}
-                title="Desconectar do ConfeitaPro e voltar para a tela de login"
+                title="Desconectar e voltar para a tela de login"
               >
                 <LogOut size={13} />
-                <span>Sair (Logoff)</span>
+                <span>Sair</span>
               </button>
             </div>
           </div>
         ) : (
           <button
-            onClick={onOpenLoginPage}
+            onClick={() => {
+              onOpenLoginPage();
+              if (onCloseMobile) onCloseMobile();
+            }}
             className="btn btn-primary btn-sm"
             style={{ width: '100%', fontSize: '0.8rem', gap: '0.4rem' }}
           >
@@ -330,6 +357,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Sidebar Desktop Fixa */}
+      <aside 
+        className="desktop-only"
+        style={{
+          width: '260px',
+          height: '100vh',
+          position: 'sticky',
+          top: 0,
+          background: '#FFFFFF',
+          borderRight: '1px solid var(--border-light)',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '1.25rem 1rem',
+          flexShrink: 0,
+          overflowY: 'auto',
+          zIndex: 30
+        }}
+      >
+        {renderNavContent()}
+      </aside>
+
+      {/* Drawer Mobile Lateral */}
+      {isMobileOpen && (
+        <div className="mobile-drawer-overlay" onClick={onCloseMobile}>
+          <div 
+            className="mobile-drawer-content" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ padding: '1.25rem 1rem' }}
+          >
+            {renderNavContent()}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

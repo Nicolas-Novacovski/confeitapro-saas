@@ -15,6 +15,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { BRANDING } from '../config/branding';
 
 interface LoginPageProps {
   onSuccessLogin: () => void;
@@ -83,41 +84,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
+      flexWrap: 'wrap',
       background: 'radial-gradient(circle at top left, #FFF2F4 0%, #FAF7F2 60%, #F0F7F2 100%)'
     }}>
-      {/* Coluna Esquerda: Prova Social, Branding e Motivação */}
+      {/* Coluna Esquerda: Prova Social, Branding e Motivação (em desktop ou empilhado em tablet) */}
       <div style={{
-        flex: '1.1',
-        padding: '3.5rem 4rem',
+        flex: '1 1 480px',
+        padding: '3rem 3.5rem',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         borderRight: '1px solid var(--border-light)',
-        background: 'rgba(255, 255, 255, 0.45)',
+        background: 'rgba(255, 255, 255, 0.55)',
         backdropFilter: 'blur(10px)'
       }}>
         <div>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
-            <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.5rem',
-              boxShadow: '0 6px 16px rgba(232, 139, 154, 0.35)'
-            }}>
-              🧁
-            </div>
+          {/* Logo Oficial DoceLucro */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '2.5rem' }}>
+            <img 
+              src={BRANDING.logoUrl} 
+              alt={BRANDING.name}
+              className="brand-logo-img-lg"
+            />
             <div>
-              <span className="font-serif" style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                Confeita<span style={{ color: 'var(--primary)' }}>Pro</span>
+              <span className="font-serif" style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+                {BRANDING.prefix}<span style={{ color: 'var(--primary)' }}>{BRANDING.suffix}</span>
               </span>
-              <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-                Precificação Inteligente & Gestão Gastronômica
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {BRANDING.slogan}
               </p>
             </div>
           </div>
@@ -131,22 +125,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
               Descubra o lucro real de cada receita em menos de 2 minutos.
             </h1>
             <p style={{ fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-              O ConfeitaPro calcula automaticamente cada grama de leite condensado, a embalagem, a fita, o gás do forno e até a sua mão de obra, para que você nunca mais tenha prejuízo.
+              O {BRANDING.name} calcula automaticamente cada grama de leite condensado, a embalagem, a fita, o gás do forno e até a sua mão de obra, para que você nunca mais tenha prejuízo.
             </p>
           </div>
 
           {/* Métricas de Impacto */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2.5rem' }}>
             <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-dark)' }}>+2.800</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-dark)' }}>{BRANDING.communityCount}</p>
               <span style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>Confeiteiras Lucrando</span>
             </div>
             <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--sage-700)' }}>R$ 1.4M</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--sage-700)' }}>R$ 1.8M</p>
               <span style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>Precificados sem Erro</span>
             </div>
             <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--amber-700)' }}>99.4%</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--amber-700)' }}>99.6%</p>
               <span style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>Aprovação e Suporte</span>
             </div>
           </div>
@@ -165,7 +159,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
               ))}
             </div>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-body)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: '0.75rem' }}>
-              "Eu achava que lucrava cobrando R$ 60 no meu bolo vulcão. Quando o ConfeitaPro somou o gás, a forma alta e 1h de batedeira, descobri que meu custo real era R$ 49! Ajustei para R$ 90 e vendi ainda mais com a legenda da Chef IA!"
+              "Eu achava que lucrava cobrando R$ 60 no meu bolo vulcão. Quando o DoceLucro somou o gás, a forma alta e 1h de batedeira, descobri que meu custo real era R$ 49! Ajustei para R$ 90 e vendi ainda mais com a legenda da Chef IA!"
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.2rem' }}>👩‍🍳</span>
@@ -190,21 +184,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
 
       {/* Coluna Direita: Caixa de Login e Cadastro */}
       <div style={{
-        flex: '0.9',
+        flex: '1 1 420px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '2rem'
+        padding: '2rem 1.25rem'
       }}>
         <div style={{
           maxWidth: '460px',
           width: '100%',
           background: '#FFFFFF',
           borderRadius: 'var(--radius-xl)',
-          padding: '2.25rem',
+          padding: '2.25rem 1.75rem',
           boxShadow: 'var(--shadow-lg)',
           border: '1px solid var(--border-light)'
         }}>
+          {/* Cabeçalho do Card visível no Mobile */}
+          <div className="mobile-only" style={{ alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
+            <img src={BRANDING.logoUrl} alt={BRANDING.name} className="brand-logo-img" style={{ width: '42px', height: '42px' }} />
+            <div>
+              <span className="font-serif" style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+                {BRANDING.prefix}<span style={{ color: 'var(--primary)' }}>{BRANDING.suffix}</span>
+              </span>
+              <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                {BRANDING.slogan}
+              </p>
+            </div>
+          </div>
+
           {/* Seletor de Modo */}
           <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-subtle)', padding: '0.35rem', borderRadius: 'var(--radius-md)', marginBottom: '1.75rem' }}>
             <button

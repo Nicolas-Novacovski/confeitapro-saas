@@ -36,7 +36,7 @@ export const AiAdvisorPage: React.FC<AiAdvisorPageProps> = ({
     {
       id: 'welcome-msg',
       sender: 'assistant',
-      text: `Olá! Sou a **Chef IA ConfeitaPro**, sua consultora especialista em gestão gastronômica e marketing para confeitarias! 🧁✨
+      text: `Olá! Sou a **Chef IA DoceLucro**, sua consultora especialista em gestão gastronômica e marketing para confeitarias! 🧁✨
 
 Selecione uma de suas receitas acima ou me faça qualquer pergunta sobre:
 - **Redução inteligente de custos** sem perder a cremosidade e qualidade dos seus doces;

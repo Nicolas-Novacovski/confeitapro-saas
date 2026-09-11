@@ -12,6 +12,7 @@ import { ExportBudgetModal } from './components/ExportBudgetModal';
 import { RoiLossCalculatorModal } from './components/RoiLossCalculatorModal';
 import { SecurityPanelModal } from './components/SecurityPanelModal';
 import { ActiveSessionModal } from './components/ActiveSessionModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 import { Dashboard } from './pages/Dashboard';
 import { RecipesPage } from './pages/RecipesPage';
@@ -27,6 +28,7 @@ import { Check, X, Sparkles } from 'lucide-react';
 const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [showLoginPage, setShowLoginPage] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Modals state
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
@@ -116,13 +118,15 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="app-container">
-      {/* Menu Lateral Fixo */}
+      {/* Menu Lateral Fixo / Drawer Mobile */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onOpenPricing={() => setIsPricingModalOpen(true)}
         onOpenLoginPage={() => setShowLoginPage(true)}
         onOpenActiveSession={() => setIsActiveSessionModalOpen(true)}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Conteúdo Principal */}
@@ -133,6 +137,7 @@ const MainApp: React.FC = () => {
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onOpenLaborCalc={() => setIsLaborCalcModalOpen(true)}
           onOpenActiveSession={() => setIsActiveSessionModalOpen(true)}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
         />
 
         {/* Banner de Celebração ao Retornar do Stripe */}
@@ -294,6 +299,13 @@ const MainApp: React.FC = () => {
           onClose={() => setExportRecipe(null)}
         />
       )}
+
+      {/* Barra de Navegação Inferior para Smartphones */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenMoreMenu={() => setIsMobileMenuOpen(true)}
+      />
     </div>
   );
 };

@@ -154,7 +154,7 @@ export const RoiLossCalculatorModal: React.FC<RoiLossCalculatorModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <TrendingUp size={20} color="var(--sage-700)" />
               <strong style={{ fontSize: '0.95rem', color: 'var(--sage-700)' }}>
-                O ConfeitaPro custa apenas R$ 29,90 por mês:
+                O DoceLucro custa apenas R$ 29,90 por mês:
               </strong>
             </div>
 

@@ -123,6 +123,41 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         </div>
       </div>
 
+      {/* Alerta Inteligente de Saúde Financeira DoceLucro */}
+      {recipe.desiredProfitMargin < 60 ? (
+        <div style={{
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.4rem 0.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          fontSize: '0.75rem',
+          color: '#B91C1C',
+          fontWeight: 600
+        }}>
+          <span>⚠️</span>
+          <span>Margem baixa ({recipe.desiredProfitMargin}%). Risco de pagar para trabalhar se os insumos subirem!</span>
+        </div>
+      ) : (
+        <div style={{
+          background: 'var(--sage-50)',
+          border: '1px solid var(--sage-200)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.3rem 0.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.725rem',
+          color: 'var(--sage-700)',
+          fontWeight: 600
+        }}>
+          <span>✨ Margem Saudável & Blindada</span>
+          <span>Retorno Seguro</span>
+        </div>
+      )}
+
       {/* Mini decomposição de custos */}
       <div style={{
         display: 'flex',

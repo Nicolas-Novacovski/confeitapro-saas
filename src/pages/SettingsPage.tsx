@@ -54,7 +54,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenPricing }) => 
     setTimeout(() => setStripeSavedSuccess(false), 3000);
   };
 
-  const envSample = `# Arquivo .env para o ConfeitaPro SaaS
+  const envSample = `# Arquivo .env para o DoceLucro SaaS
 VITE_FIREBASE_API_KEY=sua_api_key_aqui
 VITE_FIREBASE_AUTH_DOMAIN=seu-projeto.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=seu-projeto
@@ -212,7 +212,7 @@ VITE_GEMINI_API_KEY=sua_chave_gemini_aqui`;
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm('Deseja realmente cancelar sua assinatura do ConfeitaPro e cortar qualquer cobrança futura do Stripe? Você voltará ao plano Grátis.')) {
+                  if (window.confirm('Deseja realmente cancelar sua assinatura do DoceLucro e cortar qualquer cobrança futura do Stripe? Você voltará ao plano Grátis.')) {
                     cancelSubscription();
                     alert('Sua assinatura foi cancelada. Cobrança interrompida.');
                   }

@@ -97,7 +97,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             <span style={{ fontSize: '1.75rem' }}>🧁</span>
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                {user ? 'Sua Conta no ConfeitaPro' : (mode === 'login' ? 'Entrar no Seu Ateliê' : 'Cadastre seu Ateliê Grátis')}
+                {user ? 'Sua Conta no DoceLucro' : (mode === 'login' ? 'Entrar no Seu Ateliê' : 'Cadastre seu Ateliê Grátis')}
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {user ? 'Gerencie seu perfil e dados' : 'Acesse suas receitas e relatórios de onde estiver.'}

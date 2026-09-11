@@ -13,8 +13,10 @@ import {
   Plus, 
   ChefHat, 
   Crown,
-  Lightbulb
+  Lightbulb,
+  ShieldAlert
 } from 'lucide-react';
+import { BRANDING } from '../config/branding';
 
 interface DashboardProps {
   onOpenNewRecipe: () => void;
@@ -84,11 +86,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Grid de Métricas Principais */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-        gap: '1.25rem'
-      }}>
+      <div 
+        className="stats-grid-mobile"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+          gap: '1.25rem'
+        }}
+      >
         {/* Métrica 1: Receitas Cadastradas */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{
@@ -184,6 +189,55 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Escudo Anti-Prejuízo DoceLucro */}
+      <div style={{
+        background: 'linear-gradient(135deg, #FAF4FC 0%, #FFF3F5 50%, #FAF7EE 100%)',
+        border: '1.5px solid var(--lavender-300)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '1.25rem 1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: 'var(--shadow-xs)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'var(--shadow-xs)',
+            flexShrink: 0
+          }}>
+            <ShieldAlert size={22} color="var(--primary)" />
+          </div>
+          <div>
+            <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)', display: 'block' }}>
+              🛡️ Seu Escudo Anti-Prejuízo {BRANDING.name}
+            </strong>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-body)', marginTop: '2px' }}>
+              Você já precificou <strong>{recipes.length} receitas</strong> com custos de gás, embalagem e horas cobertos. Sem o {BRANDING.name}, confeiteiras perdem em média <strong>R$ {(Math.max(recipes.length, 1) * 62.4).toFixed(2)}/mês</strong> por calcular receitas "de cabeça"!
+            </p>
+          </div>
+        </div>
+
+        {!isPro && (
+          <button
+            onClick={onOpenPricing}
+            className="btn btn-pro btn-sm pulse-pro"
+            style={{ fontWeight: 700 }}
+          >
+            <Sparkles size={14} />
+            <span>Liberar Chef IA Pro</span>
+          </button>
+        )}
       </div>
 
       {/* Dica da Chef IA */}

@@ -9,8 +9,9 @@ export async function askChefAi(
 ): Promise<string> {
   if (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY') {
     try {
-      let systemPrompt = `Você é a "Chef IA ConfeitaPro 2.0", a maior consultora do Brasil em confeitaria artesanal, engenharia de cardápios, redução de custos, precificação à prova de prejuízo e estratégias de vendas.
-Seu tom é profissional, acolhedor, inspirador e estratégico. Use formatação limpa com tópicos, negrito nos números e valores em reais (R$).`;
+      let systemPrompt = `Você é a "Chef IA DoceLucro 2.0", a maior consultora do Brasil em confeitaria artesanal, engenharia de cardápios, redução de custos, precificação à prova de prejuízo e estratégias de vendas.
+Sua missão é salvar confeiteiras de pagarem para trabalhar e transformar a confeitaria delas em um negócio altamente lucrativo.
+Fale com entusiasmo amigável, tom profissional e prático, usando emojis de confeitaria e finanças (🧁, 💰, 📈, ✨). Forneça sempre números estimados e orientações claras de como lucrar de verdade.`;
 
       if (contextRecipe) {
         systemPrompt += `\n\nContexto da receita atual:
@@ -122,7 +123,7 @@ Vender doces em kits aumenta seu ticket médio em até **65%**. Veja como estrut
   }
 
   // Resposta padrão
-  return `### 👩‍🍳 Dicas Estratégicas da Chef IA ConfeitaPro
+  return `### 👩‍🍳 Dicas Estratégicas da Chef IA DoceLucro
 
 Que alegria te ajudar a prosperar! Analisei sua receita de **${title}** (${formatCurrencyBRL(suggestedPrice)} por receita).
 
