@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { isFirebaseConfigured } from '../config/firebase';
 import { FirebaseSetupModal } from './FirebaseSetupModal';
-import { X, LogIn, UserPlus, Sparkles, CheckCircle2, AlertCircle, Check, X as XIcon, MailCheck, RefreshCw } from 'lucide-react';
+import { X, LogIn, UserPlus, Sparkles, CheckCircle2, AlertCircle, Check, X as XIcon, MailCheck } from 'lucide-react';
 import { validatePasswordPolicy } from '../utils/security';
 
 interface AuthModalProps {
@@ -13,10 +13,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const { 
     user, 
     login, 
-    register, 
-    pendingActivation, 
-    verifyActivationCode, 
-    resendActivationCode, 
+    register,
     loginWithGoogle, 
     registerWithGoogle, 
     loginDemo, 
@@ -28,9 +25,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [bakeryName, setBakeryName] = useState('');
-  const [activationCodeInput, setActivationCodeInput] = useState('');
-  const [devCodeDisplay, setDevCodeDisplay] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const passwordRules = validatePasswordPolicy(password);
@@ -48,13 +43,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (!passwordRules.isValid) {
           throw new Error(passwordRules.message || 'A senha precisa seguir os requisitos de segurança.');
         }
-        const res = await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Doce Ateliê');
-        setDevCodeDisplay(null);
-        setActivationCodeInput(''); // Vazio para exigir digitação
+        await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Doce Ateliê');
         setMode('activate');
-      } else if (mode === 'activate') {
-        await verifyActivationCode(activationCodeInput);
-        onClose();
       }
     } catch (err: any) {
       setError(err?.message || 'Falha ao processar. Verifique os dados informados.');
@@ -231,7 +221,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             )}
 
             {mode === 'activate' ? (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{
                   background: 'linear-gradient(135deg, #FFF3F5 0%, #FAF5FD 100%)',
                   border: '1px solid var(--lavender-300)',
@@ -252,12 +242,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                   }}>
                     <MailCheck size={26} color="var(--primary)" />
                   </div>
-                  <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
-                    Código Enviado para seu E-mail! 💌
+
+                  <h4 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                    marginBottom: '0.35rem'
+                  }}>
+                    Confirme seu e-mail 💌
                   </h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-body)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
-                    Enviamos o código oficial de ativação para:
+
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: 'var(--text-body)',
+                    lineHeight: 1.5,
+                    marginBottom: '0.75rem'
+                  }}>
+                    Enviamos um link de confirmação para:
                   </p>
+
                   <div style={{
                     display: 'inline-block',
                     background: '#FFFFFF',
@@ -267,47 +270,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                     fontWeight: 700,
                     fontSize: '0.825rem',
                     color: 'var(--primary-dark)',
-                    marginBottom: '0.5rem'
+                    marginBottom: '0.75rem'
                   }}>
-                    {email || pendingActivation?.email}
+                    {email}
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Verifique sua caixa de entrada e digite o código de 6 dígitos recebido.
+
+                  <p style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.5
+                  }}>
+                    Abra sua caixa de entrada e clique no link enviado pelo ConfeitaPro.
+                    Depois, volte aqui para fazer login.
                   </p>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" style={{ textAlign: 'center', display: 'block' }}>
-                    Digite os 6 dígitos de ativação
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    className="form-input"
-                    style={{
-                      textAlign: 'center',
-                      fontSize: '1.5rem',
-                      letterSpacing: '0.35em',
-                      fontWeight: 800,
-                      fontFamily: 'monospace',
-                      padding: '0.85rem'
-                    }}
-                    placeholder="000000"
-                    value={activationCodeInput}
-                    onChange={(e) => setActivationCodeInput(e.target.value.replace(/\D/g, ''))}
-                    required
-                  />
-                </div>
-
                 <button
-                  type="submit"
-                  disabled={loading || activationCodeInput.length < 6}
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setError(null);
+                  }}
                   className="btn btn-primary"
                   style={{ width: '100%', padding: '0.85rem', fontWeight: 700 }}
                 >
-                  {loading ? 'Validando...' : 'Ativar Minha Conta & Entrar'}
+                  Voltar para o Login
                 </button>
-              </form>
+              </div>
             ) : (
               <>
             {/* BOTÃO GOOGLE DESTACADO */}

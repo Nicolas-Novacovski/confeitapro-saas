@@ -34,7 +34,6 @@ export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose })
         icon: 'success',
         confirmButtonColor: '#9C78DC',
         confirmButtonText: 'Testar Funcionalidades',
-        borderRadius: '16px'
       });
       
       onClose();
