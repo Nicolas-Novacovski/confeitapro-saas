@@ -1,153 +1,111 @@
 import { Recipe, Ingredient, RecipeFinancials } from '../types';
 import { formatCurrencyBRL } from './formatters';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+// Importações do Firebase para a Trava de Segurança
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase'; // <-- Caminho corrigido com sucesso!
+
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
 export async function askChefAi(
   prompt: string,
-  contextRecipe?: { recipe: Recipe; financials: RecipeFinancials; ingredients: Ingredient[] }
+  contextRecipe?: { recipe: Recipe; financials: RecipeFinancials; ingredients: Ingredient[] },
+  userId?: string // <-- Adicionamos o ID da confeiteira aqui
 ): Promise<string> {
   
-  if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
+  const todayStr = new Date().toISOString().split('T')[0];
+  let userRef: any = null;
+
+  // 1. VERIFICAÇÃO DA TRAVA (15 PERGUNTAS/DIA)
+  if (userId && db) {
     try {
-      let systemPrompt = `Você é a "Chef IA DoceLucro 2.0", a maior consultora do Brasil em confeitaria artesanal, engenharia de cardápios, redução de custos, precificação à prova de prejuízo e elaboração de receitas.
-Sua missão é ajudar as confeiteiras e responder DIRETAMENTE E EXATAMENTE ao que foi perguntado.
-Nunca responda com um "menu de opções". Responda de forma fluida e direta à pergunta feita.
-Se a confeiteira pedir uma nova receita, forneça a receita detalhada com ingredientes e passo a passo.
-Se ela perguntar sobre custos, de dicas diretas.
-Fale com entusiasmo amigável, tom profissional e prático, usando emojis de confeitaria e finanças (🧁, 💰, 📈, ✨). Forneça sempre números estimados e orientações claras de como lucrar de verdade.`;
+      userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const lastUsage = userData.ia_last_usage;
+        let usageCount = userData.ia_usage_count || 0;
+
+        // Se virou o dia, reseta o contador
+        if (lastUsage !== todayStr) {
+          usageCount = 0;
+        }
+
+        // Se bateu o teto de 15 perguntas
+        if (usageCount >= 15) {
+          return `### 🛑 Descanso da Chef\n\n🧁 Uau, você está voando hoje! A Chef IA já analisou 15 estratégias incríveis para o seu negócio.\n\nPara garantir a qualidade da nossa consultora e processar tudo que já aprendemos, seu limite diário foi atingido. Voltamos amanhã com muito mais lucros! ✨`;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar limite no Firebase:', error);
+    }
+  }
+
+  // 2. CHAMADA PARA A GROQ API
+  if (GROQ_API_KEY && GROQ_API_KEY.trim() !== '') {
+    try {
+      let systemPrompt = `Você é a "Chef IA DoceLucro 2.0", a maior consultora do Brasil em confeitaria artesanal, engenharia de cardápios, redução de custos e precificação.
+Sua missão é ajudar confeiteiras e responder DIRETAMENTE ao que foi perguntado, de forma fluida e prática.
+Se a confeiteira pedir uma receita, forneça ingredientes detalhados e o modo de preparo.
+Use emojis amigáveis (🧁, 💰, 📈). Responda sempre em português do Brasil.`;
 
       if (contextRecipe) {
-        systemPrompt += `\n\nContexto da receita atual que a confeiteira tem cadastrada no sistema (use apenas se a pergunta dela for sobre essa receita específica):
+        systemPrompt += `\n\nContexto da receita atual da usuária:
 - Produto: ${contextRecipe.recipe.title}
-- Categoria: ${contextRecipe.recipe.category}
-- Rendimento: ${contextRecipe.recipe.yieldAmount} ${contextRecipe.recipe.yieldUnit}
-- Custo Total de Produção: ${formatCurrencyBRL(contextRecipe.financials.totalCost)} (Insumos: ${formatCurrencyBRL(contextRecipe.financials.ingredientsCost)}, Embalagens: ${formatCurrencyBRL(contextRecipe.financials.packagingsCost)}, Gás/Luz: ${formatCurrencyBRL(contextRecipe.financials.overheadCost)}, Mão de Obra: ${formatCurrencyBRL(contextRecipe.financials.laborCost)})
-- Preço sugerido: ${formatCurrencyBRL(contextRecipe.financials.suggestedSalePrice)} (${formatCurrencyBRL(contextRecipe.financials.suggestedPricePerUnit)} cada)
+- Custo Total de Produção: ${formatCurrencyBRL(contextRecipe.financials.totalCost)}
+- Preço sugerido: ${formatCurrencyBRL(contextRecipe.financials.suggestedSalePrice)}
 - Margem de Lucro: ${contextRecipe.recipe.desiredProfitMargin}%`;
       }
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${systemPrompt}\n\nPergunta da confeiteira: ${prompt}` }] }]
-          })
-        }
-      );
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY.trim()}`
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b', // O modelo que descobrimos que funciona!
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1024
+        })
+      });
 
       if (response.ok) {
         const data = await response.json();
-        const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const generatedText = data.choices?.[0]?.message?.content;
+
+        // 3. ATUALIZA O SALDO DE PERGUNTAS (Se a resposta deu certo)
+        if (generatedText && userRef) {
+          try {
+            const userSnap = await getDoc(userRef);
+            let newCount = 1;
+            
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              if (userData.ia_last_usage === todayStr) {
+                newCount = (userData.ia_usage_count || 0) + 1;
+              }
+              await updateDoc(userRef, { ia_usage_count: newCount, ia_last_usage: todayStr });
+            } else {
+              await setDoc(userRef, { ia_usage_count: newCount, ia_last_usage: todayStr }, { merge: true });
+            }
+          } catch (e) {
+            console.error('Erro ao debitar uso da IA no Firebase', e);
+          }
+        }
+
         if (generatedText) return generatedText;
       }
     } catch (err) {
-      console.warn('Erro ao chamar API do Gemini, caindo no fallback:', err);
+      console.warn('Erro na Groq API.', err);
     }
-  } else {
-      console.warn('Chave da API do Gemini ausente. Usando resposta fallback.');
   }
 
-  // Fallback Gastronômico Inteligente de Alta Precisão (Para quando a API não estiver configurada)
-  await new Promise((resolve) => setTimeout(resolve, 700));
-  const lower = prompt.toLowerCase();
-  const title = contextRecipe?.recipe.title || 'sua receita';
-  const totalCost = contextRecipe?.financials.totalCost || 40;
-  const suggestedPrice = contextRecipe?.financials.suggestedSalePrice || 80;
-  const unitPrice = contextRecipe?.financials.suggestedPricePerUnit || 8;
-
-  // Se o usuário pedir uma receita no modo fallback
-  if (lower.includes('receita de') || lower.includes('como fazer') || lower.includes('passo a passo')) {
-      return `### 👩‍🍳 Receita Especial Solicitada
-
-(Nota do Sistema: Você está usando o modo OFFLINE porque a chave da API do Gemini não foi configurada. Para que eu crie receitas reais e exclusivas para você na hora, adicione sua VITE_GEMINI_API_KEY no painel de configurações).
-
-Enquanto isso, aqui vai a estrutura de ouro de uma receita perfeita para lucrar:
-1. **Pese tudo na balança digital** (nada de xícaras ou colheres, precisão é lucro!).
-2. **Substitua 20% do chocolate nobre por cacau em pó 100%** para baratear o custo sem perder a qualidade e ainda deixar a cor linda.
-3. Não esqueça de somar os 30 minutos de gás do fogão e as embalagens na hora de colocar na nossa calculadora! ✨`;
-  }
-
-  // 1. Resposta para Objeção de Preço: "Achei Caro"
-  if (lower.includes('caro') || lower.includes('objeção') || lower.includes('responder')) {
-    return `### 💬 Roteiro de WhatsApp: Como Responder "Achei Caro" com Elegância e Fechar a Venda
-
-Quando a cliente disser que achou caro, **nunca baixe o preço imediatamente**. Isso desvaloriza seu trabalho. Use esta técnica em 3 passos:
-
----
-
-**Passo 1: Valide com empatia (sem se desculpar):**
-> *"Oi [Nome da Cliente]! Entendo perfeitamente a sua preocupação com o orçamento. Na hora de escolher os doces da nossa comemoração, cada detalhe importa muito mesmo!"*
-
-**Passo 2: Destaque o diferencial sensorial e a segurança:**
-> *"O diferencial do nosso **${title}** é que ele é produzido de forma 100% artesanal, com chocolate nobre e manteiga de primeira linha, garantindo aquela cremosidade que derrete na boca e não fica com gosto de açúcar ou gordura. Além disso, vai em embalagem lacrada e pronta para impressionar seus convidados."*
-
-**Passo 3: Ofereça uma alternativa inteligente (Downsell) em vez de dar desconto:**
-> *"Se você quiser ajustar para caber certinho no seu orçamento hoje, podemos fazer [uma versão de tamanho menor / um kit com menos unidades] por apenas [Valor mais acessível]. O que acha de reservarmos para você?"*
-
-💡 **Dica da Chef IA:** *Quem compra pelo preço, vai embora pelo preço. Quem compra pelo sabor e encanto, vira cliente fiel para a vida inteira!*`;
-  }
-
-  // 2. Otimização e Barateamento de Custos
-  if (lower.includes('otimizar') || lower.includes('custo') || lower.includes('baratear') || lower.includes('economizar')) {
-    return `### 📉 Diagnóstico de Redução de Custos da Chef IA para **${title}**
-
-Com base no seu custo total de **${formatCurrencyBRL(totalCost)}**, identifiquei 3 pontos onde você pode economizar até **R$ ${(totalCost * 0.18).toFixed(2)} por receita**:
-
-1. **Blend de Cacau & Chocolate Nobre:**
-   - Se você usa 100% de chocolate nobre puro em coberturas cozidas, substitua 30% do peso por cacau em pó 100% alcalino. O sabor ficará mais intenso, a cor ficará aveludada e seu custo cai cerca de **15% a 18%**.
-
-2. **Negociação de Embalagens em Atacado:**
-   - As embalagens e fitas individuais costumam devorar até 22% do seu lucro. Compre caixas desmontadas em pacotes de 50 ou 100 unidades direto de distribuidores. O custo unitário cai em média de R$ 4,50 para R$ 1,60.
-
-3. **Padronização e Controle de Gramatura:**
-   - Utilize sempre balança de precisão digital. Uma variação de apenas 2 a 3 gramas a mais por brigadeiro ou fatia faz você perder o equivalente a **1 receita inteira a cada 10 fornadas**!
-
-✨ **Resultado Previsto:** *Sua margem líquida sobe imediatamente de ${contextRecipe?.recipe.desiredProfitMargin || 120}% para ${(contextRecipe?.recipe.desiredProfitMargin || 120) + 25}% sem alterar 1 centavo no preço que a cliente paga.*`;
-  }
-
-  // 3. Calculadora de Desconto Seguro
-  if (lower.includes('desconto') || lower.includes('promoção') || lower.includes('prejuízo')) {
-    const discount10 = suggestedPrice * 0.9;
-    const profitWithDiscount = discount10 - totalCost;
-    return `### 📊 Análise de Desconto Seguro da Chef IA
-
-Analisei a viabilidade de desconto para **${title}**:
-
-- **Preço Cheio:** ${formatCurrencyBRL(suggestedPrice)} (Lucro Líquido: ${formatCurrencyBRL(suggestedPrice - totalCost)})
-- **Com 5% de Desconto:** ${formatCurrencyBRL(suggestedPrice * 0.95)} (Lucro Líquido: ${formatCurrencyBRL((suggestedPrice * 0.95) - totalCost)}) 🟢 *Seguro*
-- **Com 10% de Desconto:** ${formatCurrencyBRL(discount10)} (Lucro Líquido: ${formatCurrencyBRL(profitWithDiscount)}) 🟡 *Apenas para compras à vista no Pix*
-- **Mais de 15% de Desconto:** 🔴 *PERIGO:* Você começará a trabalhar apenas para pagar o mercado e não terá margem para o seu salário!
-
-💡 **Regra de Ouro:** *Só ofereça desconto mediante uma contrapartida da cliente: pagamento 100% antecipado no Pix ou pedido com mais de 3 dias de antecedência!*`;
-  }
-
-  // 4. Criação de Combos e Kits Lucrativos
-  if (lower.includes('combo') || lower.includes('kit') || lower.includes('páscoa') || lower.includes('natal') || lower.includes('mães')) {
-    return `### 🎁 Estratégia de Combos & Kits de Alto Lucro da Chef IA
-
-Vender doces em kits aumenta seu ticket médio em até **65%**. Veja como estruturar:
-
-1. **O Combo "Presente Afetivo" (Campeão de Vendas):**
-   - 1 Unidade de **${title}** + Caixa com 4 brigadeiros gourmet belgas + Cartão kraft com mensagem personalizada.
-   - **Custo de Produção:** ~R$ ${(totalCost * 1.15).toFixed(2)}
-   - **Preço Sugerido do Kit:** ${formatCurrencyBRL(suggestedPrice * 1.45)}
-   - **Seu Lucro no Kit:** +${formatCurrencyBRL((suggestedPrice * 1.45) - (totalCost * 1.15))}
-
-2. **Gatilho da Escassez:**
-   - Divulgue sempre como: *"Edição Limitada: Apenas 15 caixas disponíveis para esta semana!"*. As clientes compram por impulso para não ficar sem!`;
-  }
-
-  // Resposta padrão caso nenhuma palavra-chave seja ativada (apenas se a API falhar ou estiver sem chave)
-  return `### 👩‍🍳 Dicas Estratégicas da Chef IA DoceLucro
-
-Que alegria te ajudar a prosperar! Analisei sua receita de **${title}** (${formatCurrencyBRL(suggestedPrice)} por receita).
-
-Ainda não conectamos seu painel de Inteligência Artificial completo, mas posso te ajudar com:
-1. 📉 **Reduzir custos de insumos sem perder qualidade**
-2. 📱 **Criar legenda magnética para o Instagram e WhatsApp**
-3. 💬 **Roteiro pronto para fechar vendas no WhatsApp**
-4. 🎁 **Como transformar esta receita em um Kit de Presente lucrativo**`;
+  // 4. FALLBACK INTELIGENTE
+  return `### 👩‍🍳 Consultoria Chef IA\n\nEstou pronta para analisar suas receitas. Tivemos uma pequena instabilidade de conexão, mas pode perguntar novamente em alguns segundos!`;
 }

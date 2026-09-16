@@ -25,7 +25,8 @@ export const AiAdvisorPage: React.FC<AiAdvisorPageProps> = ({
   onOpenPricing,
   preselectedRecipe
 }) => {
-  const { isPro } = useAuth();
+  // 1. ADICIONAMOS O 'user' AQUI PARA PEGAR O ID DA CONFEITEIRA
+  const { isPro, user } = useAuth();
   const { recipes, ingredients, getFinancials } = useData();
 
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>(
@@ -36,15 +37,7 @@ export const AiAdvisorPage: React.FC<AiAdvisorPageProps> = ({
     {
       id: 'welcome-msg',
       sender: 'assistant',
-      text: `Olá! Sou a **Chef IA DoceLucro**, sua consultora especialista em gestão gastronômica e marketing para confeitarias! 🧁✨
-
-Selecione uma de suas receitas acima ou me faça qualquer pergunta sobre:
-- **Redução inteligente de custos** sem perder a cremosidade e qualidade dos seus doces;
-- **Legendas de alto impacto** e apelo sensorial para seu Instagram e WhatsApp;
-- **Técnicas de conservação, validade e congelamento**;
-- **Como montar combos lucrativos** para datas sazonais (Páscoa, Dia das Mães, Natal).
-
-Como posso ajudar sua confeitaria a lucrar mais hoje?`,
+      text: `Olá! Sou a **Chef IA DoceLucro**, sua consultora especialista em gestão gastronômica e marketing para confeitarias! 🧁✨\n\nSelecione uma de suas receitas acima ou me faça qualquer pergunta sobre:\n- **Redução inteligente de custos** sem perder a cremosidade e qualidade dos seus doces;\n- **Legendas de alto impacto** e apelo sensorial para seu Instagram e WhatsApp;\n- **Técnicas de conservação, validade e congelamento**;\n- **Como montar combos lucrativos** para datas sazonais (Páscoa, Dia das Mães, Natal).\n\nComo posso ajudar sua confeitaria a lucrar mais hoje?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -78,7 +71,8 @@ Como posso ajudar sua confeitaria a lucrar mais hoje?`,
           }
         : undefined;
 
-      const aiResponseText = await askChefAi(text, context);
+      // 2. ENVIAMOS O ID DO USUÁRIO PARA ATIVAR A TRAVA DO FIREBASE
+      const aiResponseText = await askChefAi(text, context, user?.uid);
 
       const aiMessage: AiChatMessage = {
         id: 'ai_' + Date.now(),
