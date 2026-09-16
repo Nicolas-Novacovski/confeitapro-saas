@@ -1,6 +1,6 @@
 # 🧁 ConfeitaPro SaaS - Precificação & Gestão Gastronômica
 
-> O sistema SaaS definitivo para confeiteiras, cozinheiros e pequenos negócios gastronômicos calcularem custos reais de receitas, mão de obra, embalagens, margens de lucro sem prejuízos, com **Chef IA no Plano Pro**, assinatura mensal via **Stripe** e banco em nuvem com **Firebase**.
+> O sistema SaaS definitivo para confeiteiras, cozinheiros e pequenos negócios gastronômicos calcularem custos reais de receitas, mão de obra, embalagens, margens de lucro sem prejuízos, com **Chef IA no Plano Pro**, assinatura mensal via **Stripe** e banco em nuvem com **Firebase***.
 
 ---
 
