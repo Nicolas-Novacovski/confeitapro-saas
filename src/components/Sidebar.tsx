@@ -7,13 +7,8 @@ import {
   Sparkles, 
   Clock, 
   Settings, 
-  Crown, 
-  ChevronRight, 
   TrendingDown, 
   ShieldCheck, 
-  LogIn,
-  LogOut,
-  UserCheck,
   X
 } from 'lucide-react';
 import { BRANDING } from '../config/branding';
@@ -41,13 +36,11 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
-  onOpenPricing,
-  onOpenLoginPage,
-  onOpenActiveSession,
   isMobileOpen,
   onCloseMobile
 }) => {
-  const { isPro, user, logout, isAdmin } = useAuth();
+  // Mantemos apenas isPro e isAdmin para gerenciar as cores e tags (badges) do menu
+  const { isPro, isAdmin } = useAuth();
 
   const menuItems = [
     { id: 'dashboard' as NavTab, label: 'Visão Geral', icon: LayoutDashboard },
@@ -79,33 +72,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const renderNavContent = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-        {/* Topo da Sidebar: Logo Oficial DoceLucro */}
+        
+        {/* Topo da Sidebar: Logo Maior e Clicável */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0.25rem 0.5rem 0.85rem',
-          borderBottom: '1px solid var(--border-light)',
-          marginBottom: '0.5rem'
+          padding: '0.25rem 0.5rem 0.5rem',
+          marginBottom: '0.25rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div 
+            onClick={() => {
+              onSelectTab('dashboard');
+              if (onCloseMobile) onCloseMobile();
+            }}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.75rem', 
+              cursor: 'pointer',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            title="Ir para a Visão Geral"
+          >
             <img 
               src={BRANDING.logoUrl} 
               alt={BRANDING.name} 
               className="brand-logo-img" 
-              style={{ width: '36px', height: '36px' }} 
+              style={{ width: '44px', height: '44px' }} 
             />
             <div>
-              <div className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1.1 }}>
+              <div className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 800, lineHeight: 1.1 }}>
                 {BRANDING.prefix}<span style={{ color: 'var(--primary)' }}>{BRANDING.suffix}</span>
               </div>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                 Gestão & Lucratividade
               </span>
             </div>
           </div>
+          
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
@@ -202,184 +211,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.75rem' }}>
-        {/* Banner de Upgrade para o Plano PRO se for Free */}
-        {!isPro ? (
-          <div style={{
-            background: 'linear-gradient(145deg, #F9F5FE 0%, #FFF3F5 100%)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.15rem 1rem',
-            border: '1.5px solid var(--lavender-300)',
-            boxShadow: 'var(--shadow-sm)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-              <Crown size={16} color="#8E7AC4" />
-              <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#523A84' }}>
-                Plano Pro DoceLucro
-              </span>
-            </div>
-
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-body)', lineHeight: 1.4, marginBottom: '0.75rem' }}>
-              Receitas ilimitadas, IA gastronômica para reduzir custos e orçamentos para WhatsApp.
-            </p>
-
-            <button
-              onClick={() => {
-                onOpenPricing();
-                if (onCloseMobile) onCloseMobile();
-              }}
-              className="btn btn-pro btn-sm"
-              style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem' }}
-            >
-              <span>Liberar por R$ 29,90</span>
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        ) : (
-          <div style={{
-            background: 'var(--sage-50)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '0.85rem 1rem',
-            border: '1px solid var(--sage-300)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.65rem'
-          }}>
-            <Crown size={18} color="var(--sage-700)" />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--sage-700)' }}>
-                Assinatura Pro Ativa
-              </p>
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                Acesso total liberado
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Card da Sessão Ativa e Logoff */}
-        {user ? (
-          <div style={{
-            background: '#FFFFFF',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-light)',
-            padding: '0.75rem',
-            boxShadow: 'var(--shadow-xs)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.65rem'
-          }}>
-            <div 
-              onClick={() => {
-                if (onOpenActiveSession) onOpenActiveSession();
-                if (onCloseMobile) onCloseMobile();
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                cursor: onOpenActiveSession ? 'pointer' : 'default'
-              }}
-              title="Clique para ver detalhes da sessão ou gerenciar assinatura"
-            >
-              <div style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
-                color: '#FFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                flexShrink: 0
-              }}>
-                {(user.displayName || user.email || 'C')[0].toUpperCase()}
-              </div>
-              <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: '#22C55E',
-                    display: 'inline-block'
-                  }} />
-                  <strong style={{
-                    fontSize: '0.8rem',
-                    color: 'var(--text-main)',
-                    display: 'block',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    overflow: 'hidden'
-                  }}>
-                    {user.displayName}
-                  </strong>
-                </div>
-                <span style={{
-                  fontSize: '0.7rem',
-                  color: 'var(--text-muted)',
-                  display: 'block',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  overflow: 'hidden'
-                }}>
-                  {user.bakeryName}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.5rem' }}>
-              {onOpenActiveSession && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenActiveSession();
-                    if (onCloseMobile) onCloseMobile();
-                  }}
-                  className="btn btn-ghost btn-sm"
-                  style={{ flex: 1, fontSize: '0.725rem', padding: '0.35rem 0.4rem', color: 'var(--text-body)' }}
-                >
-                  <UserCheck size={13} />
-                  <span>Sessão</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={logout}
-                className="btn btn-ghost btn-sm"
-                style={{ flex: 1, fontSize: '0.725rem', padding: '0.35rem 0.4rem', color: '#E11D48' }}
-                title="Desconectar e voltar para a tela de login"
-              >
-                <LogOut size={13} />
-                <span>Sair</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => {
-              onOpenLoginPage();
-              if (onCloseMobile) onCloseMobile();
-            }}
-            className="btn btn-primary btn-sm"
-            style={{ width: '100%', fontSize: '0.8rem', gap: '0.4rem' }}
-          >
-            <LogIn size={15} />
-            <span>Fazer Login</span>
-          </button>
-        )}
-      </div>
     </div>
   );
 
   return (
     <>
-      {/* Sidebar Desktop Fixa */}
       <aside 
         className="desktop-only"
         style={{
@@ -400,7 +236,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {renderNavContent()}
       </aside>
 
-      {/* Drawer Mobile Lateral */}
       {isMobileOpen && (
         <div className="mobile-drawer-overlay" onClick={onCloseMobile}>
           <div 

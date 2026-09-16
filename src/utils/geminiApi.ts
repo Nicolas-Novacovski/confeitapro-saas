@@ -7,14 +7,18 @@ export async function askChefAi(
   prompt: string,
   contextRecipe?: { recipe: Recipe; financials: RecipeFinancials; ingredients: Ingredient[] }
 ): Promise<string> {
-  if (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY') {
+  
+  if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
     try {
-      let systemPrompt = `Você é a "Chef IA DoceLucro 2.0", a maior consultora do Brasil em confeitaria artesanal, engenharia de cardápios, redução de custos, precificação à prova de prejuízo e estratégias de vendas.
-Sua missão é salvar confeiteiras de pagarem para trabalhar e transformar a confeitaria delas em um negócio altamente lucrativo.
+      let systemPrompt = `Você é a "Chef IA DoceLucro 2.0", a maior consultora do Brasil em confeitaria artesanal, engenharia de cardápios, redução de custos, precificação à prova de prejuízo e elaboração de receitas.
+Sua missão é ajudar as confeiteiras e responder DIRETAMENTE E EXATAMENTE ao que foi perguntado.
+Nunca responda com um "menu de opções". Responda de forma fluida e direta à pergunta feita.
+Se a confeiteira pedir uma nova receita, forneça a receita detalhada com ingredientes e passo a passo.
+Se ela perguntar sobre custos, de dicas diretas.
 Fale com entusiasmo amigável, tom profissional e prático, usando emojis de confeitaria e finanças (🧁, 💰, 📈, ✨). Forneça sempre números estimados e orientações claras de como lucrar de verdade.`;
 
       if (contextRecipe) {
-        systemPrompt += `\n\nContexto da receita atual:
+        systemPrompt += `\n\nContexto da receita atual que a confeiteira tem cadastrada no sistema (use apenas se a pergunta dela for sobre essa receita específica):
 - Produto: ${contextRecipe.recipe.title}
 - Categoria: ${contextRecipe.recipe.category}
 - Rendimento: ${contextRecipe.recipe.yieldAmount} ${contextRecipe.recipe.yieldUnit}
@@ -40,17 +44,31 @@ Fale com entusiasmo amigável, tom profissional e prático, usando emojis de con
         if (generatedText) return generatedText;
       }
     } catch (err) {
-      console.warn('Erro ao chamar API do Gemini:', err);
+      console.warn('Erro ao chamar API do Gemini, caindo no fallback:', err);
     }
+  } else {
+      console.warn('Chave da API do Gemini ausente. Usando resposta fallback.');
   }
 
-  // Fallback Gastronômico Inteligente de Alta Precisão
+  // Fallback Gastronômico Inteligente de Alta Precisão (Para quando a API não estiver configurada)
   await new Promise((resolve) => setTimeout(resolve, 700));
   const lower = prompt.toLowerCase();
   const title = contextRecipe?.recipe.title || 'sua receita';
   const totalCost = contextRecipe?.financials.totalCost || 40;
   const suggestedPrice = contextRecipe?.financials.suggestedSalePrice || 80;
   const unitPrice = contextRecipe?.financials.suggestedPricePerUnit || 8;
+
+  // Se o usuário pedir uma receita no modo fallback
+  if (lower.includes('receita de') || lower.includes('como fazer') || lower.includes('passo a passo')) {
+      return `### 👩‍🍳 Receita Especial Solicitada
+
+(Nota do Sistema: Você está usando o modo OFFLINE porque a chave da API do Gemini não foi configurada. Para que eu crie receitas reais e exclusivas para você na hora, adicione sua VITE_GEMINI_API_KEY no painel de configurações).
+
+Enquanto isso, aqui vai a estrutura de ouro de uma receita perfeita para lucrar:
+1. **Pese tudo na balança digital** (nada de xícaras ou colheres, precisão é lucro!).
+2. **Substitua 20% do chocolate nobre por cacau em pó 100%** para baratear o custo sem perder a qualidade e ainda deixar a cor linda.
+3. Não esqueça de somar os 30 minutos de gás do fogão e as embalagens na hora de colocar na nossa calculadora! ✨`;
+  }
 
   // 1. Resposta para Objeção de Preço: "Achei Caro"
   if (lower.includes('caro') || lower.includes('objeção') || lower.includes('responder')) {
@@ -122,12 +140,12 @@ Vender doces em kits aumenta seu ticket médio em até **65%**. Veja como estrut
    - Divulgue sempre como: *"Edição Limitada: Apenas 15 caixas disponíveis para esta semana!"*. As clientes compram por impulso para não ficar sem!`;
   }
 
-  // Resposta padrão
+  // Resposta padrão caso nenhuma palavra-chave seja ativada (apenas se a API falhar ou estiver sem chave)
   return `### 👩‍🍳 Dicas Estratégicas da Chef IA DoceLucro
 
 Que alegria te ajudar a prosperar! Analisei sua receita de **${title}** (${formatCurrencyBRL(suggestedPrice)} por receita).
 
-O que você quer explorar agora?
+Ainda não conectamos seu painel de Inteligência Artificial completo, mas posso te ajudar com:
 1. 📉 **Reduzir custos de insumos sem perder qualidade**
 2. 📱 **Criar legenda magnética para o Instagram e WhatsApp**
 3. 💬 **Roteiro pronto para fechar vendas no WhatsApp**

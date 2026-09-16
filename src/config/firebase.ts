@@ -14,7 +14,7 @@ export interface FirebaseCustomConfig {
 const LOCAL_FIREBASE_CONFIG_KEY = 'confeitapro_firebase_config';
 
 export function getActiveFirebaseConfig(): FirebaseCustomConfig {
-  // 1. Tenta carregar do localStorage
+  // 1. Tenta carregar do localStorage (se configurado pelo Modal)
   try {
     const saved = localStorage.getItem(LOCAL_FIREBASE_CONFIG_KEY);
     if (saved) {
@@ -25,14 +25,14 @@ export function getActiveFirebaseConfig(): FirebaseCustomConfig {
     }
   } catch (e) {}
 
-  // 2. Tenta carregar do .env do Vite
+  // 2. Carrega direto com as suas chaves oficiais (Ignora o erro do .env no Codespaces)
   return {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-    appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDSyaup1TmESVHDIzKpYyI0xPCCnk0nfEs',
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'projeto-saas-3ef84.firebaseapp.com',
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'projeto-saas-3ef84',
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'projeto-saas-3ef84.firebasestorage.app',
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '747807614112',
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:747807614112:web:49ca8b0b18d03659d315c5'
   };
 }
 

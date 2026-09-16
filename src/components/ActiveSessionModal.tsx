@@ -8,12 +8,11 @@ import {
   Laptop, 
   Crown, 
   AlertTriangle, 
-  CheckCircle2, 
-  ExternalLink,
-  UserCheck
+  CheckCircle2
 } from 'lucide-react';
 import { formatCurrencyBRL } from '../utils/formatters';
 import { STRIPE_PLANS } from '../config/stripe';
+import Swal from 'sweetalert2';
 
 interface ActiveSessionModalProps {
   onClose: () => void;
@@ -21,7 +20,7 @@ interface ActiveSessionModalProps {
 }
 
 export const ActiveSessionModal: React.FC<ActiveSessionModalProps> = ({ onClose, onOpenPricing }) => {
-  const { user, logout, cancelSubscription, isPro, isMaster } = useAuth();
+  const { user, logout, cancelSubscription, isPro } = useAuth();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelFeedback, setCancelFeedback] = useState<string | null>(null);
 
@@ -29,7 +28,6 @@ export const ActiveSessionModal: React.FC<ActiveSessionModalProps> = ({ onClose,
 
   const currentPlan = STRIPE_PLANS[user.plan || 'free'];
 
-  // Formata o horário do login
   const sessionTimeFormatted = user.sessionStartedAt
     ? new Date(user.sessionStartedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -47,314 +45,370 @@ export const ActiveSessionModal: React.FC<ActiveSessionModalProps> = ({ onClose,
     }, 4500);
   };
 
-  const handleLogout = async () => {
-    await logout();
-    onClose();
+  const handleLogout = () => {
+    Swal.fire({
+      title: 'Sair da conta?',
+      text: 'Tem certeza que deseja se desconectar do sistema?',
+      icon: 'warning',
+      iconColor: '#FDA4AF', // Vermelho pastel mais suave
+      showCancelButton: true,
+      confirmButtonText: 'Sim, fazer logoff',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'custom-swal-popup',
+        title: 'custom-swal-title',
+        htmlContainer: 'custom-swal-text',
+        confirmButton: 'custom-swal-confirm',
+        cancelButton: 'custom-swal-cancel',
+        actions: 'custom-swal-actions'
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        await logout();
+        onClose();
+      }
+    });
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-content" 
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: '520px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          padding: 0,
-          borderRadius: 'var(--radius-xl)'
-        }}
-      >
-        {/* Cabeçalho */}
-        <div style={{
-          background: 'linear-gradient(135deg, #FAF4FC 0%, #FFF3F5 100%)',
-          padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid var(--border-light)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
-              color: '#FFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '1.1rem',
-              boxShadow: '0 4px 10px rgba(232, 139, 154, 0.3)'
-            }}>
-              {(user.displayName || user.email || 'C')[0].toUpperCase()}
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                Sessão Ativa do Usuário
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#22C55E',
-                  display: 'inline-block',
-                  boxShadow: '0 0 6px #22C55E'
-                }} />
-                <span style={{ fontSize: '0.75rem', color: 'var(--sage-700)', fontWeight: 600 }}>
-                  Online & Conectado com Sucesso
-                </span>
+    <>
+      <style>{`
+        .custom-swal-popup { border-radius: 16px !important; padding: 1.5rem 1.25rem !important; box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important; }
+        .custom-swal-title { font-family: ui-sans-serif, system-ui, sans-serif !important; font-weight: 700 !important; color: #334155 !important; font-size: 1.25rem !important; }
+        .custom-swal-text { color: #64748B !important; font-size: 0.9rem !important; margin-top: 0.35rem !important; }
+        .custom-swal-actions { gap: 0.75rem; margin-top: 1.5rem !important; width: 100%; justify-content: center; display: flex; }
+        .custom-swal-confirm { 
+          background: #FFF1F2 !important; 
+          color: #E11D48 !important; 
+          border: 1px solid #FECDD3 !important; 
+          border-radius: 8px !important; 
+          padding: 0.6rem 1.25rem !important; 
+          font-weight: 600 !important; 
+          font-size: 0.875rem !important;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: none !important;
+        }
+        .custom-swal-confirm:hover { background: #FFE4E6 !important; }
+        .custom-swal-cancel { 
+          background: #F8FAFC !important; 
+          color: #64748B !important; 
+          border: 1px solid #E2E8F0 !important; 
+          border-radius: 8px !important; 
+          font-weight: 600 !important; 
+          font-size: 0.875rem !important;
+          padding: 0.6rem 1.25rem !important;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .custom-swal-cancel:hover { background: #F1F5F9 !important; color: #475569 !important; }
+      `}</style>
+
+      <div className="modal-overlay" onClick={onClose}>
+        <div 
+          className="modal-content" 
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: '520px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: 0,
+            borderRadius: 'var(--radius-xl)'
+          }}
+        >
+          {/* Cabeçalho */}
+          <div style={{
+            background: 'linear-gradient(135deg, #FAF4FC 0%, #FFF3F5 100%)',
+            padding: '1.25rem 1.5rem',
+            borderBottom: '1px solid var(--border-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FCD0D7 0%, #E88B9A 100%)',
+                color: '#FFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 10px rgba(232, 139, 154, 0.3)'
+              }}>
+                {(user.displayName || user.email || 'C')[0].toUpperCase()}
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Sessão Ativa do Usuário
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#22C55E',
+                    display: 'inline-block',
+                    boxShadow: '0 0 6px #22C55E'
+                  }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--sage-700)', fontWeight: 600 }}>
+                    Online & Conectado com Sucesso
+                  </span>
+                </div>
               </div>
             </div>
+
+            <button
+              onClick={onClose}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.35rem' }}
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-sm"
-            style={{ padding: '0.35rem' }}
-          >
-            <X size={18} />
-          </button>
-        </div>
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            
+            {cancelFeedback && (
+              <div style={{
+                background: 'var(--sage-50)',
+                border: '1px solid var(--sage-300)',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: 'var(--sage-700)',
+                fontSize: '0.85rem',
+                fontWeight: 600
+              }}>
+                <CheckCircle2 size={16} />
+                <span>{cancelFeedback}</span>
+              </div>
+            )}
 
-        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          {cancelFeedback && (
+            {/* Dados do Usuário */}
             <div style={{
-              background: 'var(--sage-50)',
-              border: '1px solid var(--sage-300)',
-              padding: '0.75rem 1rem',
+              background: 'var(--bg-canvas)',
+              padding: '1rem 1.25rem',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-light)'
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                    Nome Confeiteira
+                  </span>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {user.displayName}
+                  </p>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                    Ateliê / Negócio
+                  </span>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    {user.bakeryName}
+                  </p>
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                    E-mail de Acesso
+                  </span>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-body)' }}>
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Informações Técnicas da Sessão */}
+            <div style={{
+              background: 'var(--bg-subtle)',
+              padding: '1rem 1.25rem',
               borderRadius: 'var(--radius-md)',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: 'var(--sage-700)',
-              fontSize: '0.85rem',
-              fontWeight: 600
+              flexDirection: 'column',
+              gap: '0.65rem'
             }}>
-              <CheckCircle2 size={16} />
-              <span>{cancelFeedback}</span>
-            </div>
-          )}
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Detalhes da Conexão Atual
+              </span>
 
-          {/* Dados do Usuário */}
-          <div style={{
-            background: 'var(--bg-canvas)',
-            padding: '1rem 1.25rem',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-light)'
-          }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                  Nome Confeiteira
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-body)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Clock size={14} color="var(--primary)" />
+                  Início da Sessão:
                 </span>
-                <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {user.displayName}
-                </p>
+                <strong>{sessionDateFormatted} às {sessionTimeFormatted}</strong>
               </div>
 
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                  Ateliê / Negócio
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-body)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Laptop size={14} color="var(--lavender-500)" />
+                  Dispositivo:
                 </span>
-                <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                  {user.bakeryName}
-                </p>
+                <span>Navegador Web Seguro (PC / Desktop)</span>
               </div>
 
-              <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                  E-mail de Acesso
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-body)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <ShieldCheck size={14} color="var(--sage-700)" />
+                  Persistência de Sessão:
                 </span>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-body)' }}>
-                  {user.email}
-                </p>
+                <span style={{ color: 'var(--sage-700)', fontWeight: 600 }}>Ativa (Mantém conectado ao reabrir)</span>
               </div>
             </div>
-          </div>
 
-          {/* Informações Técnicas da Sessão */}
-          <div style={{
-            background: 'var(--bg-subtle)',
-            padding: '1rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.65rem'
-          }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Detalhes da Conexão Atual
-            </span>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-body)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Clock size={14} color="var(--primary)" />
-                Início da Sessão:
-              </span>
-              <strong>{sessionDateFormatted} às {sessionTimeFormatted}</strong>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-body)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Laptop size={14} color="var(--lavender-500)" />
-                Dispositivo:
-              </span>
-              <span>Navegador Web Seguro (PC / Desktop)</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-body)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <ShieldCheck size={14} color="var(--sage-700)" />
-                Persistência de Sessão:
-              </span>
-              <span style={{ color: 'var(--sage-700)', fontWeight: 600 }}>Ativa (Mantém conectado ao reabrir)</span>
-            </div>
-          </div>
-
-          {/* Gestão do Plano & Cancelamento de Assinatura */}
-          <div style={{
-            borderRadius: 'var(--radius-lg)',
-            border: isPro ? '1.5px solid var(--lavender-300)' : '1px solid var(--border-light)',
-            background: isPro ? 'linear-gradient(135deg, #FAF7FF 0%, #FFFFFF 100%)' : '#FFFFFF',
-            padding: '1.25rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Crown size={18} color={isPro ? 'var(--lavender-500)' : 'var(--text-muted)'} />
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                  {currentPlan.name}
+            {/* Gestão do Plano & Cancelamento de Assinatura */}
+            <div style={{
+              borderRadius: 'var(--radius-lg)',
+              border: isPro ? '1.5px solid var(--lavender-300)' : '1px solid var(--border-light)',
+              background: isPro ? 'linear-gradient(135deg, #FAF7FF 0%, #FFFFFF 100%)' : '#FFFFFF',
+              padding: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Crown size={18} color={isPro ? 'var(--lavender-500)' : 'var(--text-muted)'} />
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    {currentPlan.name}
+                  </span>
+                </div>
+                <span className={`badge ${isPro ? 'badge-pro' : 'badge-rose'}`} style={{ fontSize: '0.7rem' }}>
+                  {isPro ? 'ASSINATURA ATIVA' : 'GRATUITO'}
                 </span>
               </div>
-              <span className={`badge ${isPro ? 'badge-pro' : 'badge-rose'}`} style={{ fontSize: '0.7rem' }}>
-                {isPro ? 'ASSINATURA ATIVA' : 'GRATUITO'}
-              </span>
-            </div>
 
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-body)', lineHeight: 1.4, marginBottom: '0.75rem' }}>
-              {isPro ? (
-                <>Sua assinatura está ativa no valor de <strong>{formatCurrencyBRL(currentPlan.priceMonthly)}/mês</strong> com acesso ilimitado à Chef IA e precificações.</>
-              ) : (
-                'Você está no plano gratuito com até 5 receitas salvas.'
-              )}
-            </p>
-
-            {isPro ? (
-              <div>
-                {!showCancelConfirm ? (
-                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowCancelConfirm(true)}
-                      className="btn btn-secondary btn-sm"
-                      style={{ color: '#E11D48', borderColor: '#FECDD3', background: '#FFF1F2' }}
-                    >
-                      <span>Cancelar Assinatura / Cortar Cobrança</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        onOpenPricing();
-                      }}
-                      className="btn btn-ghost btn-sm"
-                      style={{ fontSize: '0.775rem' }}
-                    >
-                      Alterar Plano
-                    </button>
-                  </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-body)', lineHeight: 1.4, marginBottom: '0.75rem' }}>
+                {isPro ? (
+                  <>Sua assinatura está ativa no valor de <strong>{formatCurrencyBRL(currentPlan.priceMonthly)}/mês</strong> com acesso ilimitado à Chef IA e precificações.</>
                 ) : (
-                  <div style={{
-                    background: '#FFF1F2',
-                    border: '1px solid #FDA4AF',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '1rem',
-                    animation: 'fadeIn 0.2s ease-out'
-                  }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem' }}>
-                      <AlertTriangle size={18} color="#E11D48" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div>
-                        <strong style={{ fontSize: '0.85rem', color: '#9F1239', display: 'block' }}>
-                          Confirmar Cancelamento da Assinatura?
-                        </strong>
-                        <p style={{ fontSize: '0.775rem', color: '#9F1239', marginTop: '2px', lineHeight: 1.4 }}>
-                          Ao cancelar, sua assinatura será interrompida imediatamente, <strong>cortando qualquer cobrança futura do Stripe</strong>. Você retornará ao plano Grátis e não terá mais acesso à Chef IA.
-                        </p>
+                  'Você está no plano gratuito com até 5 receitas salvas.'
+                )}
+              </p>
+
+              {isPro ? (
+                <div>
+                  {!showCancelConfirm ? (
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelConfirm(true)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#E11D48', borderColor: '#FECDD3', background: '#FFF1F2' }}
+                      >
+                        <span>Cancelar Assinatura / Cortar Cobrança</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenPricing();
+                        }}
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '0.775rem' }}
+                      >
+                        Alterar Plano
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: '#FFF1F2',
+                      border: '1px solid #FDA4AF',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '1rem',
+                      animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                        <AlertTriangle size={18} color="#E11D48" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <strong style={{ fontSize: '0.85rem', color: '#9F1239', display: 'block' }}>
+                            Confirmar Cancelamento da Assinatura?
+                          </strong>
+                          <p style={{ fontSize: '0.775rem', color: '#9F1239', marginTop: '2px', lineHeight: 1.4 }}>
+                            Ao cancelar, sua assinatura será interrompida imediatamente, <strong>cortando qualquer cobrança futura do Stripe</strong>. Você retornará ao plano Grátis e não terá mais acesso à Chef IA.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowCancelConfirm(false)}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Manter Minha Assinatura
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmCancelPlan}
+                          className="btn btn-sm"
+                          style={{ background: '#E11D48', color: '#FFF', border: 'none', fontWeight: 700 }}
+                        >
+                          Sim, Cancelar e Cortar Cobrança
+                        </button>
                       </div>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenPricing();
+                  }}
+                  className="btn btn-pro btn-sm"
+                  style={{ width: '100%' }}
+                >
+                  <Crown size={15} />
+                  <span>Assinar Plano PRO por R$ 29,90/mês</span>
+                </button>
+              )}
+            </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button
-                        type="button"
-                        onClick={() => setShowCancelConfirm(false)}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        Manter Minha Assinatura
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleConfirmCancelPlan}
-                        className="btn btn-sm"
-                        style={{ background: '#E11D48', color: '#FFF', border: 'none', fontWeight: 700 }}
-                      >
-                        Sim, Cancelar e Cortar Cobrança
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
+            {/* Botão de LOGOFF / SAIR DA CONTA */}
+            <div style={{
+              borderTop: '1px solid var(--border-light)',
+              paddingTop: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
+            }}>
               <button
                 type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenPricing();
+                onClick={handleLogout}
+                className="btn btn-secondary"
+                style={{
+                  width: '100%',
+                  color: '#E11D48',
+                  borderColor: '#FECDD3',
+                  gap: '0.5rem',
+                  fontWeight: 700,
+                  padding: '0.75rem'
                 }}
-                className="btn btn-pro btn-sm"
-                style={{ width: '100%' }}
               >
-                <Crown size={15} />
-                <span>Assinar Plano PRO por R$ 29,90/mês</span>
+                <LogOut size={16} />
+                <span>Sair da Conta (Fazer Logoff)</span>
               </button>
-            )}
-          </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                Ao deslogar, você voltará para a tela de login. Ao reabrir o site deslogado, será exigido login novamente.
+              </p>
+            </div>
 
-          {/* Botão de LOGOFF / SAIR DA CONTA */}
-          <div style={{
-            borderTop: '1px solid var(--border-light)',
-            paddingTop: '1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem'
-          }}>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="btn btn-secondary"
-              style={{
-                width: '100%',
-                color: '#E11D48',
-                borderColor: '#FECDD3',
-                gap: '0.5rem',
-                fontWeight: 700,
-                padding: '0.75rem'
-              }}
-            >
-              <LogOut size={16} />
-              <span>Sair da Conta (Fazer Logoff)</span>
-            </button>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-              Ao deslogar, você voltará para a tela de login. Ao reabrir o site deslogado, será exigido login novamente.
-            </p>
           </div>
-
         </div>
       </div>
-    </div>
+    </>
   );
 };

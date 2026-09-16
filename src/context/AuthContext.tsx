@@ -1,29 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserPlan } from '../types';
 import { INITIAL_USER } from '../data/initialData';
-import { auth, googleProvider, isFirebaseConfigured } from '../config/firebase';
+import { auth, db, googleProvider, isFirebaseConfigured } from '../config/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   sendEmailVerification,
   signInWithPopup, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  updateProfile as updateFirebaseProfile 
 } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import confetti from 'canvas-confetti';
 import { hashPasswordSecurely, validatePasswordPolicy } from '../utils/security';
-import { sendActivationEmail } from '../utils/emailService';
 
 export const ADMIN_EMAIL = 'nicolas.vendrami@gmail.com';
-
-interface PendingActivation {
-  email: string;
-  name: string;
-  bakery: string;
-  hashedPass: string;
-  activationCode: string;
-  createdAt: number;
-}
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -31,27 +23,23 @@ interface AuthContextType {
   isPro: boolean;
   isMaster: boolean;
   isAdmin: boolean;
-  pendingActivation: PendingActivation | null;
   login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string, name: string, bakery: string) => Promise<{ codeSent: boolean; devCode?: string }>;
-  verifyActivationCode: (code: string) => Promise<boolean>;
-  resendActivationCode: () => Promise<string>;
+  register: (email: string, pass: string, name: string, bakery: string) => Promise<void>;
+  resendVerificationEmail: (email: string, pass: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   registerWithGoogle: (bakeryName?: string) => Promise<void>;
   loginDemo: () => void;
   logout: () => Promise<void>;
   upgradePlan: (plan: UserPlan) => void;
   cancelSubscription: () => void;
-  updateProfile: (data: Partial<UserProfile>) => void;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_USER_KEY = 'confeitapro_user_profile';
 const LOCAL_STORAGE_AUTH_DB_KEY = 'docelucro_secure_users_vault';
-const LOCAL_STORAGE_PENDING_ACTIVATION_KEY = 'docelucro_pending_activation';
 
-// Recupera banco criptografado local
 function getLocalUsersVault(): Record<string, { email: string; name: string; bakery: string; passwordHash: string; isVerified: boolean }> {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_AUTH_DB_KEY);
@@ -69,22 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
     if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Falha ao restaurar usuário local:', e);
-      }
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
     }
     return null;
-  });
-
-  const [pendingActivation, setPendingActivation] = useState<PendingActivation | null>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_PENDING_ACTIVATION_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
   });
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -98,34 +73,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   useEffect(() => {
-    if (pendingActivation) {
-      localStorage.setItem(LOCAL_STORAGE_PENDING_ACTIVATION_KEY, JSON.stringify(pendingActivation));
-    } else {
-      localStorage.removeItem(LOCAL_STORAGE_PENDING_ACTIVATION_KEY);
-    }
-  }, [pendingActivation]);
-
-  useEffect(() => {
     if (isFirebaseConfigured && auth) {
-      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-          // Se o usuário foi criado por email e ainda NÃO verificou, não loga no app
           if (!firebaseUser.emailVerified && firebaseUser.providerData.some(p => p.providerId === 'password')) {
             setUser(null);
-            return;
+            return; 
           }
 
-          setUser((prev) => ({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || prev?.displayName || 'Confeiteira',
-            bakeryName: prev?.bakeryName || (firebaseUser.displayName ? `Ateliê de ${firebaseUser.displayName.split(' ')[0]}` : 'Meu Ateliê Doce'),
-            hourlyLaborRate: prev?.hourlyLaborRate || 28,
-            monthlyHoursTarget: prev?.monthlyHoursTarget || 140,
-            plan: prev?.plan || 'free',
-            isDemo: false,
-            isEmailVerified: firebaseUser.emailVerified
-          }));
+          // 🚀 BUSCA OS DADOS REAIS DO FIRESTORE
+          let firestoreData: any = null;
+          if (db) {
+            try {
+              const docRef = doc(db, 'users', firebaseUser.uid);
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists()) {
+                firestoreData = docSnap.data();
+              }
+            } catch (err) {
+              console.warn("Erro ao buscar dados do Firestore, usando fallback local:", err);
+            }
+          }
+
+          setUser((prev) => {
+            const finalName = firestoreData?.name || firebaseUser.displayName || prev?.displayName || 'Confeiteira';
+            const defaultBakery = finalName !== 'Confeiteira' ? `Ateliê de ${finalName.split(' ')[0]}` : 'Meu Ateliê Doce';
+
+            return {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: finalName,
+              bakeryName: firestoreData?.bakeryName || prev?.bakeryName || defaultBakery,
+              hourlyLaborRate: firestoreData?.hourlyLaborRate || prev?.hourlyLaborRate || 28,
+              monthlyHoursTarget: firestoreData?.monthlyHoursTarget || prev?.monthlyHoursTarget || 140,
+              plan: firestoreData?.plan || prev?.plan || 'free',
+              isDemo: false,
+              isEmailVerified: firebaseUser.emailVerified
+            };
+          });
+        } else {
+          setUser(null);
         }
       });
       return () => unsubscribe();
@@ -146,20 +133,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cred = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
         if (!cred.user.emailVerified) {
           await signOut(auth);
-          throw new Error('Sua conta ainda não foi ativada. Verifique o link enviado ao seu e-mail ou digite seu código.');
+          throw new Error('Sua conta ainda não foi ativada. Verifique o link de confirmação que enviamos para o seu e-mail.');
         }
       } else {
-        // Autenticação local com verificação de HASH criptografado SHA-256
         const vault = getLocalUsersVault();
         const existing = vault[normalizedEmail];
         const inputHash = await hashPasswordSecurely(pass);
 
         if (existing) {
           if (existing.passwordHash !== inputHash) {
-            throw new Error('Senha incorreta. Verifique suas credenciais.');
-          }
-          if (!existing.isVerified) {
-            throw new Error('Esta conta ainda não foi ativada. Digite o código de ativação enviado.');
+            throw new Error('Senha incorreta.');
           }
         }
 
@@ -184,136 +167,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, pass: string, name: string, bakery: string) => {
     setLoading(true);
     try {
-      // 1. Validação estrita de política de senhas (maiúscula, número, especial, 8 dígitos)
       const policy = validatePasswordPolicy(pass);
       if (!policy.isValid) {
-        throw new Error(policy.message || 'A senha não atende aos requisitos de segurança.');
+        throw new Error(policy.message || 'A senha não atende aos requisitos.');
       }
 
       const normalizedEmail = email.toLowerCase().trim();
-      const now = new Date().toISOString();
-
-      // 2. Geração do código de ativação seguro de 6 dígitos
-      const activationCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // 3. Criptografa a senha com hash SHA-256 + Salt antes de gravar
-      const passwordHash = await hashPasswordSecurely(pass);
 
       if (isFirebaseConfigured && auth) {
         try {
-          await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
-          // Desconecta a sessão automática do Firebase para exigir ativação por código
+          const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
+          
+          await updateFirebaseProfile(cred.user, { displayName: name });
+
+          // 🚀 SALVA OS DADOS NO FIRESTORE ASSIM QUE A CONTA É CRIADA
+          if (db) {
+            await setDoc(doc(db, 'users', cred.user.uid), {
+              email: normalizedEmail,
+              name: name,
+              bakeryName: bakery,
+              hourlyLaborRate: 28,
+              monthlyHoursTarget: 140,
+              plan: 'free',
+              createdAt: new Date().toISOString()
+            });
+          }
+
+          auth.languageCode = 'pt-BR';
+          await sendEmailVerification(cred.user);
           await signOut(auth);
         } catch (e: any) {
           if (e?.code === 'auth/email-already-in-use') {
-            throw new Error('Este e-mail já está cadastrado no Firebase. Para testar o cadastro novamente: exclua-o no Firebase Console (Authentication > Users) ou use o truque do Gmail: seuemail+1@gmail.com (o código chega na mesma caixa postal!).');
+            throw new Error('Este e-mail já está cadastrado. Tente fazer login ou use recuperar senha.');
           }
-          console.warn('Registro Firebase fallback:', e);
+          throw e;
         }
+      } else {
+        const passwordHash = await hashPasswordSecurely(pass);
+        const vault = getLocalUsersVault();
+        vault[normalizedEmail] = { email: normalizedEmail, name, bakery, passwordHash, isVerified: true };
+        saveLocalUsersVault(vault);
       }
-
-      // Salva no cofre seguro local como usuário pendente de ativação
-      const vault = getLocalUsersVault();
-      vault[normalizedEmail] = {
-        email: normalizedEmail,
-        name,
-        bakery,
-        passwordHash,
-        isVerified: false
-      };
-      saveLocalUsersVault(vault);
-
-      const pendingData: PendingActivation = {
-        email: normalizedEmail,
-        name,
-        bakery,
-        hashedPass: passwordHash,
-        activationCode,
-        createdAt: Date.now()
-      };
-
-      setPendingActivation(pendingData);
-
-      // Dispara o e-mail oficial com o código de 6 dígitos formatado para a confeiteira
-      await sendActivationEmail({
-        email: normalizedEmail,
-        name,
-        bakery,
-        activationCode
-      });
-
-      return { codeSent: true, devCode: activationCode };
     } finally {
       setLoading(false);
     }
   };
 
-  const verifyActivationCode = async (code: string): Promise<boolean> => {
-    if (!pendingActivation) {
-      throw new Error('Nenhuma ativação pendente encontrada.');
-    }
-
-    if (code.trim() !== pendingActivation.activationCode) {
-      throw new Error('Código de ativação incorreto. Verifique os 6 dígitos digitados.');
-    }
-
-    // Marca como ativado no cofre
-    const vault = getLocalUsersVault();
-    if (vault[pendingActivation.email]) {
-      vault[pendingActivation.email].isVerified = true;
-      saveLocalUsersVault(vault);
-    }
-
-    // Cria o perfil logado
-    const now = new Date().toISOString();
-    setUser({
-      uid: 'user_' + btoa(pendingActivation.email).slice(0, 10),
-      email: pendingActivation.email,
-      displayName: pendingActivation.name,
-      bakeryName: pendingActivation.bakery,
-      hourlyLaborRate: 28,
-      monthlyHoursTarget: 140,
-      plan: 'free',
-      isDemo: false,
-      sessionStartedAt: now,
-      isEmailVerified: true
-    });
-
-    setPendingActivation(null);
-
+  const resendVerificationEmail = async (email: string, pass: string) => {
+    setLoading(true);
     try {
-      confetti({
-        particleCount: 140,
-        spread: 90,
-        origin: { y: 0.5 },
-        colors: ['#E88B9A', '#9ECDA8', '#F3CA77']
-      });
-    } catch {}
-
-    return true;
-  };
-
-  const resendActivationCode = async (): Promise<string> => {
-    if (!pendingActivation) {
-      throw new Error('Nenhuma ativação pendente.');
+      if (isFirebaseConfigured && auth) {
+        const normalizedEmail = email.toLowerCase().trim();
+        auth.languageCode = 'pt-BR';
+        const cred = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
+        await sendEmailVerification(cred.user);
+        await signOut(auth);
+      } else {
+        throw new Error('Modo local: não é possível reenviar e-mails sem Firebase.');
+      }
+    } finally {
+      setLoading(false);
     }
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const updated = {
-      ...pendingActivation,
-      activationCode: newCode,
-      createdAt: Date.now()
-    };
-    setPendingActivation(updated);
-
-    // Reenvia o e-mail formatado
-    await sendActivationEmail({
-      email: updated.email,
-      name: updated.name,
-      bakery: updated.bakery,
-      activationCode: newCode
-    });
-
-    return newCode;
   };
 
   const loginWithGoogle = async () => {
@@ -323,12 +237,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isFirebaseConfigured && auth && googleProvider) {
         const cred = await signInWithPopup(auth, googleProvider);
         if (cred.user) {
-          const gName = cred.user.displayName || 'Confeiteira Google';
+          // Checa se o usuário já existe no Firestore, se não, cria.
+          let bakeryName = `Ateliê de ${cred.user.displayName?.split(' ')[0] || 'Confeiteira'}`;
+          if (db) {
+            const docRef = doc(db, 'users', cred.user.uid);
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) {
+              await setDoc(docRef, {
+                email: cred.user.email,
+                name: cred.user.displayName,
+                bakeryName: bakeryName,
+                hourlyLaborRate: 28,
+                monthlyHoursTarget: 140,
+                plan: 'free',
+                createdAt: now
+              });
+            } else {
+              bakeryName = docSnap.data().bakeryName;
+            }
+          }
+
           setUser((prev) => ({
             uid: cred.user.uid,
             email: cred.user.email || '',
-            displayName: gName,
-            bakeryName: prev?.bakeryName || `Ateliê de ${gName.split(' ')[0]}`,
+            displayName: cred.user.displayName || 'Confeiteira Google',
+            bakeryName: bakeryName,
             hourlyLaborRate: prev?.hourlyLaborRate || 28,
             monthlyHoursTarget: 140,
             plan: prev?.plan || 'free',
@@ -336,19 +269,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sessionStartedAt: now
           }));
         }
-      } else {
-        // Fallback local Google
-        setUser({
-          uid: 'google_user_' + Date.now(),
-          email: 'confeiteira.google@gmail.com',
-          displayName: 'Camila Doces',
-          bakeryName: 'Ateliê Gourmet da Camila',
-          hourlyLaborRate: 28,
-          monthlyHoursTarget: 140,
-          plan: 'free',
-          isDemo: false,
-          sessionStartedAt: now
-        });
       }
     } finally {
       setLoading(false);
@@ -362,12 +282,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isFirebaseConfigured && auth && googleProvider) {
         const cred = await signInWithPopup(auth, googleProvider);
         if (cred.user) {
-          const gName = cred.user.displayName || 'Confeiteira';
+          const finalBakery = bakeryName || `Ateliê de ${cred.user.displayName?.split(' ')[0] || 'Confeiteira'}`;
+          
+          if (db) {
+            await setDoc(doc(db, 'users', cred.user.uid), {
+              email: cred.user.email,
+              name: cred.user.displayName,
+              bakeryName: finalBakery,
+              hourlyLaborRate: 28,
+              monthlyHoursTarget: 140,
+              plan: 'free',
+              createdAt: now
+            }, { merge: true });
+          }
+
           setUser({
             uid: cred.user.uid,
             email: cred.user.email || '',
-            displayName: gName,
-            bakeryName: bakeryName || `Ateliê de ${gName.split(' ')[0]}`,
+            displayName: cred.user.displayName || 'Confeiteira',
+            bakeryName: finalBakery,
             hourlyLaborRate: 28,
             monthlyHoursTarget: 140,
             plan: 'free',
@@ -375,18 +308,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sessionStartedAt: now
           });
         }
-      } else {
-        setUser({
-          uid: 'google_user_' + Date.now(),
-          email: 'confeiteira.google@gmail.com',
-          displayName: 'Camila Doces',
-          bakeryName: bakeryName || 'Ateliê Gourmet da Camila',
-          hourlyLaborRate: 28,
-          monthlyHoursTarget: 140,
-          plan: 'free',
-          isDemo: false,
-          sessionStartedAt: now
-        });
       }
     } finally {
       setLoading(false);
@@ -394,20 +315,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginDemo = () => {
-    setUser({
-      ...INITIAL_USER,
-      sessionStartedAt: new Date().toISOString()
-    });
+    setUser({ ...INITIAL_USER, sessionStartedAt: new Date().toISOString() });
   };
 
   const logout = async () => {
-    try {
-      if (isFirebaseConfigured && auth) {
-        await signOut(auth);
-      }
-    } catch (e) {
-      console.error('Erro no logout:', e);
-    }
+    try { if (isFirebaseConfigured && auth) await signOut(auth); } catch (e) { console.error(e); }
     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
     localStorage.removeItem('confeitapro_pending_checkout_plan');
     setUser(null);
@@ -422,42 +334,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const upgradePlan = (plan: UserPlan) => {
     if (!user) return;
     setUser({ ...user, plan });
-
-    try {
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#E88B9A', '#9ECDA8', '#F3CA77', '#C2B3E4']
-      });
-    } catch (e) {}
+    try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#E88B9A', '#9ECDA8', '#F3CA77'] }); } catch (e) {}
   };
 
-  const updateProfile = (data: Partial<UserProfile>) => {
+  const updateProfile = async (data: Partial<UserProfile>) => {
     if (!user) return;
     setUser({ ...user, ...data });
+
+    // Salva as alterações de perfil direto na nuvem
+    if (isFirebaseConfigured && db && !user.isDemo) {
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        await setDoc(docRef, data, { merge: true });
+      } catch (error) {
+        console.error("Erro ao atualizar perfil no Firestore:", error);
+      }
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        loading,
-        isPro,
-        isMaster,
-        isAdmin,
-        pendingActivation,
-        login,
-        register,
-        verifyActivationCode,
-        resendActivationCode,
-        loginWithGoogle,
-        registerWithGoogle,
-        loginDemo,
-        logout,
-        upgradePlan,
-        cancelSubscription,
-        updateProfile
+        user, loading, isPro, isMaster, isAdmin,
+        login, register, resendVerificationEmail, loginWithGoogle, registerWithGoogle,
+        loginDemo, logout, upgradePlan, cancelSubscription, updateProfile
       }}
     >
       {children}
@@ -467,8 +367,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
+  if (!context) throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   return context;
 };

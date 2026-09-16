@@ -7,14 +7,8 @@ import {
   ShieldCheck, 
   Star, 
   CheckCircle2, 
-  Lock, 
-  ArrowRight, 
-  ChefHat, 
-  TrendingUp, 
-  Heart,
   Eye,
   EyeOff,
-  KeyRound,
   MailCheck,
   Check,
   X as XIcon,
@@ -32,10 +26,8 @@ interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const { 
     login, 
-    register, 
-    pendingActivation, 
-    verifyActivationCode, 
-    resendActivationCode, 
+    register,
+    resendVerificationEmail,
     loginWithGoogle, 
     registerWithGoogle, 
     loginDemo 
@@ -47,11 +39,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [bakeryName, setBakeryName] = useState('');
-  const [activationCodeInput, setActivationCodeInput] = useState('');
-  const [devCodeDisplay, setDevCodeDisplay] = useState<string | null>(null);
-  const [resendSuccess, setResendSuccess] = useState(false);
+  
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [showFirebaseSetup, setShowFirebaseSetup] = useState(false);
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<'terms' | 'privacy'>('terms');
@@ -76,13 +67,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         if (!passwordRules.isValid) {
           throw new Error(passwordRules.message || 'A senha precisa seguir todos os critérios de segurança.');
         }
-        const res = await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Ateliê Doce');
-        setDevCodeDisplay(null);
-        setActivationCodeInput(''); // Deixar vazio para que o usuário precise digitar o código enviado
-        setMode('activate');
-      } else if (mode === 'activate') {
-        await verifyActivationCode(activationCodeInput);
-        onSuccessLogin();
+        await register(email, password, name || 'Confeiteira', bakeryName || 'Meu Ateliê Doce');
+        setMode('activate'); // Muda para a tela de aviso de e-mail enviado
       }
     } catch (err: any) {
       setError(err?.message || 'Erro na operação. Verifique os dados informados.');
@@ -91,19 +77,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     }
   };
 
-  const handleResend = async () => {
+  const handleResendEmail = async () => {
+    setError(null);
+    setResendSuccess(false);
     try {
-      setLoading(true);
-      setError(null);
-      await resendActivationCode();
-      setDevCodeDisplay(null);
-      setActivationCodeInput(''); // Mantém vazio para exigir digitação
+      await resendVerificationEmail(email, password);
       setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 4000);
+      setTimeout(() => setResendSuccess(false), 5000); // Some a mensagem depois de 5s
     } catch (err: any) {
-      setError(err?.message || 'Erro ao reenviar código.');
-    } finally {
-      setLoading(false);
+      setError(err?.message || 'Erro ao reenviar e-mail. Verifique a senha e tente novamente.');
     }
   };
 
@@ -141,7 +123,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       flexWrap: 'wrap',
       background: 'radial-gradient(circle at top left, #FFF2F4 0%, #FAF7F2 60%, #F0F7F2 100%)'
     }}>
-      {/* Coluna Esquerda: Prova Social, Branding e Motivação (em desktop ou empilhado em tablet) */}
+      {/* Coluna Esquerda: Prova Social, Branding e Motivação */}
       <div style={{
         flex: '1 1 480px',
         padding: '3rem 3.5rem',
@@ -153,7 +135,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         backdropFilter: 'blur(10px)'
       }}>
         <div>
-          {/* Logo Oficial DoceLucro */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '2.5rem' }}>
             <img 
               src={BRANDING.logoUrl} 
@@ -170,7 +151,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </div>
           </div>
 
-          {/* Chamada Principal de Conversão */}
           <div style={{ maxWidth: '520px', marginBottom: '2.5rem' }}>
             <span className="badge badge-rose" style={{ marginBottom: '0.75rem' }}>
               ✨ CHEGA DE PAGAR PARA TRABALHAR
@@ -183,7 +163,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </p>
           </div>
 
-          {/* Métricas de Impacto */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2.5rem' }}>
             <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
               <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-dark)' }}>{BRANDING.communityCount}</p>
@@ -199,7 +178,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </div>
           </div>
 
-          {/* Depoimento Real de Confeiteira */}
           <div style={{
             background: 'linear-gradient(135deg, #FFFFFF 0%, #FAF6FF 100%)',
             padding: '1.25rem 1.5rem',
@@ -225,7 +203,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           </div>
         </div>
 
-        {/* Rodapé de Segurança */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', paddingTop: '1.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <ShieldCheck size={16} color="var(--sage-700)" /> Dados 100% Criptografados
@@ -253,7 +230,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           boxShadow: 'var(--shadow-lg)',
           border: '1px solid var(--border-light)'
         }}>
-          {/* Cabeçalho do Card visível no Mobile */}
           <div className="mobile-only" style={{ alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
             <img src={BRANDING.logoUrl} alt={BRANDING.name} className="brand-logo-img" style={{ width: '42px', height: '42px' }} />
             <div>
@@ -266,7 +242,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </div>
           </div>
 
-          {/* Seletor de Modo */}
           {mode !== 'activate' ? (
             <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-subtle)', padding: '0.35rem', borderRadius: 'var(--radius-md)', marginBottom: '1.75rem' }}>
               <button
@@ -316,11 +291,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
               borderBottom: '1px solid var(--border-light)'
             }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Etapa de Ativação Segura
+                Quase lá!
               </span>
               <button
                 type="button"
-                onClick={() => setMode('register')}
+                onClick={() => setMode('login')}
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}
               >
@@ -333,12 +308,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             <h2 style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
               {mode === 'login' && 'Bem-vinda de volta! 🧁'}
               {mode === 'register' && 'Comece a lucrar hoje! 🍰'}
-              {mode === 'activate' && 'Ativação de Conta 🔐'}
+              {mode === 'activate' && 'Verifique seu E-mail 🔐'}
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               {mode === 'login' && 'Entre no seu ateliê para gerenciar receitas e pedidos.'}
-              {mode === 'register' && 'Crie sua conta em 30 segundos com senha protegida por criptografia.'}
-              {mode === 'activate' && 'Digite o código de 6 dígitos enviado para ativar seu ateliê.'}
+              {mode === 'register' && 'Crie sua conta em 30 segundos com senha protegida.'}
+              {mode === 'activate' && 'Falta apenas um passo para você acessar o sistema.'}
             </p>
           </div>
 
@@ -356,74 +331,51 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </div>
           )}
 
-          {/* TELA DE ATIVAÇÃO DE CÓDIGO */}
+          {/* TELA DE ATIVAÇÃO / CONFIRMAÇÃO DE EMAIL */}
           {mode === 'activate' ? (
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{
                 background: 'linear-gradient(135deg, #FFF3F5 0%, #FAF5FD 100%)',
                 border: '1px solid var(--lavender-300)',
-                padding: '1.5rem',
+                padding: '2rem 1.5rem',
                 borderRadius: 'var(--radius-lg)',
                 textAlign: 'center'
               }}>
                 <div style={{
-                  width: '56px',
-                  height: '56px',
+                  width: '64px',
+                  height: '64px',
                   borderRadius: 'var(--radius-full)',
                   background: '#FFFFFF',
                   boxShadow: 'var(--shadow-sm)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 1rem'
+                  margin: '0 auto 1.25rem'
                 }}>
-                  <MailCheck size={28} color="var(--primary)" />
+                  <MailCheck size={32} color="var(--primary)" />
                 </div>
-                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
-                  Código Enviado para seu E-mail! 💌
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                  Link Enviado com Sucesso! 💌
                 </h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-body)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
-                  Acabamos de despachar um e-mail oficial do DoceLucro para:
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-body)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+                  Acabamos de despachar um e-mail com o link de confirmação para:
                 </p>
                 <div style={{
                   display: 'inline-block',
                   background: '#FFFFFF',
                   border: '1px solid var(--border-light)',
-                  padding: '0.35rem 0.85rem',
+                  padding: '0.5rem 1rem',
                   borderRadius: 'var(--radius-full)',
                   fontWeight: 700,
-                  fontSize: '0.85rem',
+                  fontSize: '0.9rem',
                   color: 'var(--primary-dark)',
-                  marginBottom: '0.75rem'
+                  marginBottom: '1rem'
                 }}>
-                  {email || pendingActivation?.email}
+                  {email}
                 </div>
-                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-                  Abra sua caixa de entrada (ou pasta de spam/lixo eletrônico) e digite o código de 6 dígitos recebido.
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Abra sua caixa de entrada <strong>(ou pasta de spam)</strong>, clique no botão para ativar sua conta e volte aqui para fazer login.
                 </p>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" style={{ textAlign: 'center', display: 'block' }}>
-                  Digite os 6 dígitos de ativação
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  className="form-input"
-                  style={{
-                    textAlign: 'center',
-                    fontSize: '1.5rem',
-                    letterSpacing: '0.35em',
-                    fontWeight: 800,
-                    fontFamily: 'monospace',
-                    padding: '0.85rem'
-                  }}
-                  placeholder="000000"
-                  value={activationCodeInput}
-                  onChange={(e) => setActivationCodeInput(e.target.value.replace(/\D/g, ''))}
-                  required
-                />
               </div>
 
               {resendSuccess && (
@@ -433,35 +385,50 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
                   color: 'var(--sage-700)',
                   fontSize: '0.775rem',
                   borderRadius: 'var(--radius-sm)',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  border: '1px solid var(--sage-200)'
                 }}>
-                  Novo código gerado com sucesso!
+                  Novo link enviado com sucesso! Verifique seu e-mail.
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading || activationCodeInput.length < 6}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '0.85rem', fontWeight: 700 }}
-              >
-                {loading ? 'Validando...' : 'Ativar Minha Conta & Entrar'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={loading}
-                className="btn btn-ghost btn-sm"
-                style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)' }}
-              >
-                <RefreshCw size={14} />
-                <span>Reenviar novo código</span>
-              </button>
-            </form>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setPassword(''); // Limpa a senha ao ir para login
+                  }}
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.85rem', fontWeight: 700 }}
+                >
+                  Já ativei! Ir para o Login
+                </button>
+                
+                {/* Botão de Reenvio */}
+                <button
+                  type="button"
+                  onClick={handleResendEmail}
+                  disabled={loading}
+                  className="btn btn-ghost"
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: '0.5rem', 
+                    color: 'var(--text-muted)',
+                    padding: '0.75rem'
+                  }}
+                >
+                  <RefreshCw size={16} />
+                  <span style={{ fontSize: '0.875rem' }}>
+                    {loading ? 'Reenviando...' : 'Não recebi o link, reenviar'}
+                  </span>
+                </button>
+              </div>
+            </div>
           ) : (
             <>
-              {/* Botão Oficial do Google */}
               <button
                 type="button"
                 onClick={handleGoogleAuth}
@@ -564,7 +531,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
                     </button>
                   </div>
 
-                  {/* Checklist Dinâmico de Segurança de Senha no Cadastro */}
                   {mode === 'register' && password.length > 0 && (
                     <div style={{
                       marginTop: '0.6rem',
@@ -605,13 +571,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
                   className="btn btn-primary"
                   style={{ width: '100%', padding: '0.85rem', marginTop: '0.5rem', fontWeight: 700 }}
                 >
-                  {loading ? 'Processando...' : mode === 'login' ? 'Entrar no Sistema' : 'Criar Conta & Ativar por Código'}
+                  {loading ? 'Processando...' : mode === 'login' ? 'Entrar no Sistema' : 'Criar Conta'}
                 </button>
               </form>
             </>
           )}
 
-          {/* Acesso Modo Demonstração */}
           <div style={{
             background: 'var(--amber-50)',
             padding: '0.85rem',
@@ -634,7 +599,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </button>
           </div>
 
-          {/* Links de Termos e Privacidade (Obrigatórios para Stripe e Meta Ads) */}
           <div style={{
             textAlign: 'center',
             marginTop: '1.25rem',
@@ -690,14 +654,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         />
       )}
 
-      {/* Modal de Termos de Uso e Política de Privacidade */}
       <LegalTermsModal
         isOpen={isLegalOpen}
         onClose={() => setIsLegalOpen(false)}
         initialTab={legalTab}
       />
 
-      {/* Botão Flutuante de Suporte WhatsApp para tirar dúvidas antes da compra */}
       <WhatsAppSupportButton />
     </div>
   );

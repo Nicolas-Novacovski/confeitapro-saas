@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { STRIPE_PLANS, StripePlan } from '../config/stripe';
 import { formatCurrencyBRL } from '../utils/formatters';
 import { StripeCheckoutModal } from './StripeCheckoutModal';
-import { X, Check, Crown, ShieldCheck, Zap, Heart, ExternalLink } from 'lucide-react';
+import { X, Check, Crown, ShieldCheck, Zap, Heart, Unlock } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface PricingPlansModalProps {
   onClose: () => void;
@@ -13,20 +14,49 @@ export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose })
   const { user, upgradePlan, cancelSubscription } = useAuth();
   const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<StripePlan | null>(null);
 
+  const isDevAccount = user?.email?.toLowerCase().trim() === 'thiago_tprox@hotmail.com';
+
   const handleSelectPlan = (plan: StripePlan) => {
+    // 1. Volta para o Grátis
     if (plan.id === 'free') {
       upgradePlan('free');
       onClose();
       return;
     }
 
-    if (plan.stripePaymentLink) {
-      // Salva o plano para ativar assim que o Stripe redirecionar de volta
-      localStorage.setItem('confeitapro_pending_checkout_plan', plan.id);
-      window.location.href = plan.stripePaymentLink;
+    // 2. ATALHO MÁGICO DO DESENVOLVEDOR (Ativa o plano na hora sem passar pelo Stripe)
+    if (isDevAccount) {
+      upgradePlan(plan.id as 'pro' | 'master');
+      
+      Swal.fire({
+        title: 'Modo Dev Ativado!',
+        text: `O plano ${plan.name} foi desbloqueado com sucesso na sua conta sem cobranças.`,
+        icon: 'success',
+        confirmButtonColor: '#9C78DC',
+        confirmButtonText: 'Testar Funcionalidades',
+        borderRadius: '16px'
+      });
+      
+      onClose();
       return;
     }
 
+    // 3. FLUXO REAL: Redireciona o usuário comum para o link de pagamento seguro do Stripe
+    if (plan.stripePaymentLink) {
+      // Salva a intenção para a tela de sucesso capturar quando voltar do Stripe
+      localStorage.setItem('confeitapro_pending_checkout_plan', plan.id);
+      
+      // Opcional: Adiciona o e-mail do cliente na URL do Stripe para preencher o checkout automaticamente
+      const paymentUrl = new URL(plan.stripePaymentLink);
+      if (user?.email) {
+        paymentUrl.searchParams.append('prefilled_email', user.email);
+      }
+      
+      window.location.href = paymentUrl.toString();
+      return;
+    }
+
+    // Fallback caso não tenha link direto (abrirá o modal interno)
     setSelectedPlanForCheckout(plan);
   };
 
@@ -212,11 +242,22 @@ export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose })
                     ) : (
                       <button
                         onClick={() => handleSelectPlan(plan)}
-                        className={`btn ${isPopular ? 'btn-pro' : 'btn-primary'}`}
-                        style={{ width: '100%', fontWeight: 700, padding: '0.65rem 1rem' }}
+                        className={`btn ${isDevAccount && plan.id !== 'free' ? 'btn-secondary' : isPopular ? 'btn-pro' : 'btn-primary'}`}
+                        style={{ 
+                          width: '100%', 
+                          fontWeight: 700, 
+                          padding: '0.65rem 1rem',
+                          background: isDevAccount && plan.id !== 'free' ? '#1E293B' : undefined,
+                          color: isDevAccount && plan.id !== 'free' ? '#FFFFFF' : undefined,
+                          border: isDevAccount && plan.id !== 'free' ? 'none' : undefined
+                        }}
                       >
-                        <span>
-                          {plan.id === 'free' ? 'Voltar para Grátis' : `Ir para o Checkout (${formatCurrencyBRL(plan.priceMonthly)})`}
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                          {plan.id === 'free' 
+                            ? 'Voltar para Grátis' 
+                            : isDevAccount 
+                              ? <><Unlock size={16} /> Desbloquear Modo Dev</>
+                              : `Ir para Checkout (${formatCurrencyBRL(plan.priceMonthly)})`}
                         </span>
                       </button>
                     )}
@@ -253,7 +294,7 @@ export const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ onClose })
         </div>
       </div>
 
-      {/* Modal de Checkout do Stripe Integrado */}
+      {/* Modal de Checkout Interno (Fallback) */}
       {selectedPlanForCheckout && (
         <StripeCheckoutModal
           plan={selectedPlanForCheckout}
